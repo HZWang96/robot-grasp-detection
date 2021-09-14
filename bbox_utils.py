@@ -18,5 +18,3 @@ def grasp_to_bbox(x, y, tan, h, w):
     edge3 = (x +w/2*torch.cos(theta) -h/2*torch.sin(theta), y +w/2*torch.sin(theta) +h/2*torch.cos(theta))
     edge4 = (x -w/2*torch.cos(theta) -h/2*torch.sin(theta), y -w/2*torch.sin(theta) +h/2*torch.cos(theta))
     return [edge1, edge2, edge3, edge4]
-
-    1234
