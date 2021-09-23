@@ -1,6 +1,10 @@
-
-import tensorflow as tf
-import numpy as np
+# %matplotlib inline
+import torch
+import torchvision
+from torch import nn
+from d2l import torch as d2l
+#import tensorflow as tf
+#import numpy as np
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -31,41 +35,54 @@ def parse_example_proto(examples_serialized):
 
 
 def eval_image(image, height, width):
-    image = tf.image.central_crop(image, central_fraction=0.875)
-    image = tf.expand_dims(image, 0)
-    image = tf.image.resize_bilinear(image, [height, width],
-                                     align_corners=False)
-    image = tf.squeeze(image, [0])
- 
+    CenterCrop = torchvision.transforms.CenterCrop((196, 196))
+    image = CenterCrop(image)
+    # image = tf.image.central_crop(image, central_fraction=0.875)
+    image = torch.unsqueeze(image, dim=0)
+    # image = tf.expand_dims(image, 0)
+    Resize = torchvision.transforms.Resize([height, width], interpolation=2)
+    image = Resize(image)
+    # image = tf.image.resize_bilinear(image, [height, width],
+                                     # align_corners=False)
+    image = torch.squeeze(image, dim=0)                                 
+    # image = tf.squeeze(image, [0])
+    
     return image
 
 
 def distort_color(image, thread_id):
     color_ordering = thread_id % 2
     if color_ordering == 0:
-        image = tf.image.random_brightness(image, max_delta=32. / 255.)
-        image = tf.image.random_saturation(image, lower=0.5, upper=1.5)
-        image = tf.image.random_hue(image, max_delta=0.2)
-        image = tf.image.random_contrast(image, lower=0.5, upper=1.5)
+        random1 = torchvision.transforms.ColorJitter(brightness=32. / 255., contrast=0.5, saturation=0.5, hue=0.2)
+        image = random1(image)
+        # image = tf.image.random_brightness(image, max_delta=32. / 255.)
+        # image = tf.image.random_saturation(image, lower=0.5, upper=1.5)
+        # image = tf.image.random_hue(image, max_delta=0.2)
+        # image = tf.image.random_contrast(image, lower=0.5, upper=1.5)
     elif color_ordering == 1:
-        image = tf.image.random_brightness(image, max_delta=32. / 255.)
-        image = tf.image.random_contrast(image, lower=0.5, upper=1.5)
-        image = tf.image.random_saturation(image, lower=0.5, upper=1.5)
-        image = tf.image.random_hue(image, max_delta=0.2)
-    image = tf.clip_by_value(image, 0.0, 1.0)
+        random2 = torchvision.transforms.ColorJitter(brightness=32. / 255., contrast=0.5, saturation=0.5, hue=0.2)
+        image = random2(image)
+        # image = tf.image.random_brightness(image, max_delta=32. / 255.)
+        # image = tf.image.random_contrast(image, lower=0.5, upper=1.5)
+        # image = tf.image.random_saturation(image, lower=0.5, upper=1.5)
+        # image = tf.image.random_hue(image, max_delta=0.2)
+    image = torch.clamp(image, 0.0, 1.0)
+    # image = tf.clip_by_value(image, 0.0, 1.0) 将元素大小限制在0~1中
 
     return image
 
 
 def distort_image(image, height, width, thread_id):
-    distorted_image = tf.image.random_flip_left_right(image)
+    RandomHorizontalFlip = torchvision.transforms.RandomHorizontalFlip(p=0.5)
+    distorted_image = RandomHorizontalFlip(image)
+    # distorted_image = tf.image.random_flip_left_right(image)
     distorted_image = distort_color(distorted_image, thread_id)
     return distorted_image
 
 
 def image_preprocessing(image_buffer, train, thread_id=0):
-    height = FLAGS.image_size
-    width = FLAGS.image_size
+    height = FLAGS.image_size ????
+    width = FLAGS.image_size  ????
     image = tf.image.decode_png(image_buffer, channels=3)
     image = tf.image.convert_image_dtype(image, dtype=tf.float32)
     image = tf.image.resize_images(image, [height,width])
