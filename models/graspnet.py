@@ -1,5 +1,6 @@
 import torch
 from torch import nn
+from torch.nn import init
 import torch.nn.functional as F
 from d2l import torch as d2l
 
@@ -36,6 +37,27 @@ class GraspNet(nn.Module):
         
         ################################################################
         # return x
+
+# Model initialization
+def fill_fc_weights(layers):
+    for m in layers.modules():
+        if isinstance(m, nn.Conv2d):
+            # nn.init.normal_(m.weight, std=0.001)
+            # nn.init.kaiming_uniform_(m.weight, nonlinearity='relu')
+            # torch.nn.init.kaiming_normal_(m.weight.data, nonlinearity='relu')
+            torch.nn.init.xavier_normal_(m.weight.data)
+            if m.bias is not None:
+                nn,init.constant_(m.bias, 0)
+
+def weights_init(m):
+    if isinstance(m, nn.Conv2d):
+        nn.init.normal_(m.weight, std=0.001)
+
+        if m.bias is not None:
+            nn.init.constant_(m.bias, 0)
+
+self.apply(weights_init) # 加在init函数里面
+print("Weights are initialized!")
 
 
 def get_graspnet():
