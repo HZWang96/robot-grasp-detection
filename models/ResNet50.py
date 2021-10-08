@@ -2,7 +2,7 @@ import torch
 from torch import nn
 from torch.nn import init
 import torch.nn.functional as F
-from d2l import torch as d2l
+# from d2l import torch as d2l
 from torchvision import datasets, models, transforms
 import torch.nn as nn
 import torch.optim as optim
@@ -60,6 +60,6 @@ print("Weights are initialized!")
 
 def get_graspnet():
     
-    model = GraspNet()
+    resnet_50 = GraspNet()
 
-    return model
+    return resnet_50
