@@ -82,8 +82,8 @@ def distort_image(image, height, width, thread_id):
 
 
 def image_preprocessing(image_buffer, train, thread_id=0):
-    height = FLAGS.image_size ????
-    width = FLAGS.image_size  ????
+    height = FLAGS.image_size # ????
+    width = FLAGS.image_size  # ????
     # image = tf.image.decode_png(image_buffer, channels=3) pytorch不需要对图片进行编码和解码
     image = image.float() # int需要归一化吗？
     # image = tf.image.convert_image_dtype(image, dtype=tf.float32)
