@@ -13,9 +13,81 @@ import time
 from bbox_utils import *
 from models.model_utils import *
 from opts import opts
-from shapely.geometry import Polygon
+# from shapely.geometry import Polygon
 from data.grasp_data import GraspDataset
+import cv2
+import tensorboardX
+import datetime
+import os
+import argparse
+import logging
+from .data import get_dataset
+from models.ResNet50 import resnet_50
+import torch.optim as optim
+from torchsummary import summary
+from models.common import post_process_output
+from dataset_processing import evaluation
+
+
 # import tensorflow as tf
+
+def validate(net, device, val_data, batches_per_epoch):
+    """
+    Run validation.
+    :param net: Network
+    :param device: Torch device
+    :param val_data: Validation Dataset
+    :param batches_per_epoch: Number of batches to run
+    :return: Successes, Failures and Losses
+    """
+    net.eval()
+
+    results = {
+        'correct': 0,
+        'failed': 0,
+        'loss': 0,
+        'losses': {
+
+        }
+    }
+
+    ld = len(val_data)
+
+    with torch.no_grad():
+        batch_idx = 0
+        while batch_idx < batches_per_epoch:
+            for x, y, didx, rot, zoom_factor in val_data:
+                batch_idx += 1
+                if batches_per_epoch is not None and batch_idx >= batches_per_epoch:
+                    break
+
+                xc = x.to(device)
+                yc = [yy.to(device) for yy in y]
+                lossd = net.compute_loss(xc, yc)
+
+                loss = lossd['loss']
+
+                results['loss'] += loss.item()/ld
+                for ln, l in lossd['losses'].items():
+                    if ln not in results['losses']:
+                        results['losses'][ln] = 0
+                    results['losses'][ln] += l.item()/ld
+
+                q_out, ang_out, w_out = post_process_output(lossd['pred']['pos'], lossd['pred']['cos'],
+                                                            lossd['pred']['sin'], lossd['pred']['width'])
+
+                s = evaluation.calculate_iou_match(q_out, ang_out,
+                                                   val_data.dataset.get_gtbb(didx, rot, zoom_factor),
+                                                   no_grasps=1,
+                                                   grasp_width=w_out,
+                                                   )
+
+                if s:
+                    results['correct'] += 1
+                else:
+                    results['failed'] += 1
+
+    return results
 
 
 DATA_PATH = '../datasets/cornell_grasping_dataset/data-1'
@@ -62,6 +134,98 @@ def train():
         model = torch.nn.DataParallel(model)
 
     model.training = True
+
+
+def run():
+    args = parse_args()
+
+    # Vis window
+    if args.vis:
+        cv2.namedWindow('Display', cv2.WINDOW_NORMAL)
+
+    # Set-up output directories
+    dt = datetime.datetime.now().strftime('%y%m%d_%H%M')
+    net_desc = '{}_{}'.format(dt, '_'.join(args.description.split()))
+
+    save_folder = os.path.join(args.outdir, net_desc)
+    if not os.path.exists(save_folder):
+        os.makedirs(save_folder)
+    tb = tensorboardX.SummaryWriter(os.path.join(args.logdir, net_desc))
+
+    # Load Dataset
+    logging.info('Loading {} Dataset...'.format(args.dataset.title()))
+    Dataset = get_dataset(args.dataset)
+
+    train_dataset = Dataset(args.dataset_path, start=0.0, end=args.split, ds_rotate=args.ds_rotate,
+                            random_rotate=True, random_zoom=True,
+                            include_depth=args.use_depth, include_rgb=args.use_rgb)
+    train_data = torch.utils.data.DataLoader(
+        train_dataset,
+        batch_size=args.batch_size,
+        shuffle=True,
+        num_workers=args.num_workers
+    )
+    val_dataset = Dataset(args.dataset_path, start=args.split, end=1.0, ds_rotate=args.ds_rotate,
+                          random_rotate=True, random_zoom=True,
+                          include_depth=args.use_depth, include_rgb=args.use_rgb)
+    val_data = torch.utils.data.DataLoader(
+        val_dataset,
+        batch_size=1,
+        shuffle=False,
+        num_workers=args.num_workers
+    )
+    logging.info('Done')
+
+    # Load the network
+    logging.info('Loading Network...')
+    input_channels = 3*args.use_rgb             #  1*args.use_depth + 3*args.use_rgb
+    # ggcnn = get_network(args.network)
+    net = resnet_50                                      #   ggcnn(input_channels=input_channels)
+    device = torch.device("cuda:0")
+    net = net.to(device)
+    optimizer = optim.Adam(net.parameters())
+    logging.info('Done')
+
+    # Print model architecture.
+    summary(net, (input_channels, 224, 224))
+    f = open(os.path.join(save_folder, 'arch.txt'), 'w')
+    sys.stdout = f
+    summary(net, (input_channels, 224, 224))
+    sys.stdout = sys.__stdout__
+    f.close()
+
+    best_iou = 0.0
+    for epoch in range(args.epochs):
+        logging.info('Beginning Epoch {:02d}'.format(epoch))
+        train_results = train(epoch, net, device, train_data, optimizer, args.batches_per_epoch, vis=args.vis)
+
+        # Log training losses to tensorboard
+        tb.add_scalar('loss/train_loss', train_results['loss'], epoch)
+        for n, l in train_results['losses'].items():
+            tb.add_scalar('train_loss/' + n, l, epoch)
+
+        # Run Validation
+        logging.info('Validating...')
+        test_results = validate(net, device, val_data, args.val_batches)
+        logging.info('%d/%d = %f' % (test_results['correct'], test_results['correct'] + test_results['failed'],
+                                     test_results['correct']/(test_results['correct']+test_results['failed'])))
+
+        # Log validation results to tensorbaord
+        tb.add_scalar('loss/IOU', test_results['correct'] / (test_results['correct'] + test_results['failed']), epoch)
+        tb.add_scalar('loss/val_loss', test_results['loss'], epoch)
+        for n, l in test_results['losses'].items():
+            tb.add_scalar('val_loss/' + n, l, epoch)
+
+        # Save best performing network
+        iou = test_results['correct'] / (test_results['correct'] + test_results['failed'])
+        if iou > best_iou or epoch == 0 or (epoch % 10) == 0:
+            torch.save(net, os.path.join(save_folder, 'epoch_%02d_iou_%0.2f' % (epoch, iou)))
+            torch.save(net.state_dict(), os.path.join(save_folder, 'epoch_%02d_iou_%0.2f_statedict.pt' % (epoch, iou)))
+            best_iou = iou
+
+
+if __name__ == '__main__':
+    run()
     
 #     x, y, tan, h, w = bboxes_to_grasps(bboxes)
 #     x_hat, y_hat, tan_hat, h_hat, w_hat = torch.unbind(model(images), axis=1) # list
