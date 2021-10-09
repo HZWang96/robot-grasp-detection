@@ -1,6 +1,7 @@
 ''' 
 Training a network on cornell grasping dataset for detecting grasping positions.
 '''
+from math import cos, sin
 import sys
 import os.path
 import glob
@@ -27,6 +28,9 @@ import torch.optim as optim
 from torchsummary import summary
 from models.common import post_process_output
 from dataset_processing import evaluation
+from data.grasp_data import bbs
+from models.ResNet50 import resnet_50
+from data.grasp_data import rgb_img
 
 
 # import tensorflow as tf
@@ -90,50 +94,50 @@ def validate(net, device, val_data, batches_per_epoch):
     return results
 
 
-DATA_PATH = '../datasets/cornell_grasping_dataset/data-1'
-ANN_PATH = '../datasets/cornell_grasping_dataset/annotations/train.json'
+# DATA_PATH = '../datasets/cornell_grasping_dataset/data-1'
+# ANN_PATH = '../datasets/cornell_grasping_dataset/annotations/train.json'
 
 
-def train():
-    opt = opts()
-    # logger = Logger(opt)
+# def train():
+#     opt = opts()
+#     # logger = Logger(opt)
 
-    print('Creating model...')
-    model = create_model()   # creates the graspnet model
+#     print('Creating model...')
+#     model = create_model()   # creates the graspnet model
     
-    CGD_DATASET = GraspDataset(DATA_PATH, ANN_PATH)
-    # images, bboxes = img_preproc.distorted_inputs([data_files_], FLAGS.num_epochs, batch_size=FLAGS.batch_size)
+#     CGD_DATASET = GraspDataset(DATA_PATH, ANN_PATH)
+#     # images, bboxes = img_preproc.distorted_inputs([data_files_], FLAGS.num_epochs, batch_size=FLAGS.batch_size)
 
-    train_loader = torch.utils.data.DataLoader(
-        dataset=CGD_DATASET,
-        batch_size=1,
-        shuffle=True,
-        num_workers=0,
-        pin_memory=True,
-        drop_last=False
-    )
-
-
-    for i_batch, sample_batched in enumerate(train_loader):
-        print(i_batch)
-        # print(type(sample_batched[1][0]))
-        # print(sample_batched[1][0:8])
-        for i in range(0,len(sample_batched[1]),8):
-            x, y, tan, h, w = bboxes_to_grasps(sample_batched[1][i:i+8])
-            # print(x,y,tan,w,h)
-
-        # observe one batch and stop.
-        if i_batch == 0:
-            break
+#     train_loader = torch.utils.data.DataLoader(
+#         dataset=CGD_DATASET,
+#         batch_size=1,
+#         shuffle=True,
+#         num_workers=0,
+#         pin_memory=True,
+#         drop_last=False
+#     )
 
 
-    if torch.cuda.is_available():
-        print('CUDA is available: {}'.format(torch.cuda.is_available()))
-        model = torch.nn.DataParallel(model).cuda()
-    else:
-        model = torch.nn.DataParallel(model)
+#     for i_batch, sample_batched in enumerate(train_loader):
+#         print(i_batch)
+#         # print(type(sample_batched[1][0]))
+#         # print(sample_batched[1][0:8])
+#         for i in range(0,len(sample_batched[1]),8):
+#             x, y, tan, h, w = bboxes_to_grasps(sample_batched[1][i:i+8])
+#             # print(x,y,tan,w,h)
 
-    model.training = True
+#         # observe one batch and stop.
+#         if i_batch == 0:
+#             break
+
+
+#     if torch.cuda.is_available():
+#         print('CUDA is available: {}'.format(torch.cuda.is_available()))
+#         model = torch.nn.DataParallel(model).cuda()
+#     else:
+#         model = torch.nn.DataParallel(model)
+
+#     model.training = True
 
 
 def train(epoch, net, device, train_data, optimizer, batches_per_epoch, vis=False):
@@ -159,16 +163,30 @@ def train(epoch, net, device, train_data, optimizer, batches_per_epoch, vis=Fals
     batch_idx = 0
     # Use batches per epoch to make training on different sized datasets (cornell/jacquard) more equivalent.
     while batch_idx < batches_per_epoch:
-        for x, y, _, _, _ in train_data:
+        for rgb_img, grasp_pose, _, _, _ in train_data:
             batch_idx += 1
             if batch_idx >= batches_per_epoch:
                 break
 
-            xc = x.to(device)
-            yc = [yy.to(device) for yy in y]
+            # xc = x.to(device)
+            # yc = [yy.to(device) for yy in y]
             # for yy in y:
                 # yy.to(device)
-            lossd = net.compute_loss(xc, yc)
+            # x, y, tan, h, w = bboxes_to_grasps(bbs)
+            pos, cos, sin, width = grasp_pose
+            x, y = pos
+            w = width
+            tan = sin/cos
+            h = w*tan
+            x_hat, y_hat, tan_hat, h_hat, w_hat = torch.unbind(resnet_50(rgb_img), axis=1) # list
+
+            # tangent of 85 degree is 11 
+            tan_hat_confined = torch.minimum(11., torch.maximum(-11., tan_hat))
+            tan_confined = torch.minimum(11., torch.maximum(-11., tan))
+            # loss function
+            # lossd = net.compute_loss(xc, yc)
+            gamma = torch.Tensor(10.)
+            lossd = torch.sum(torch.pow(x_hat -x, 2) +torch.pow(y_hat -y, 2) + gamma*torch.pow(tan_hat_confined - tan_confined, 2) +torch.pow(h_hat -h, 2) +torch.pow(w_hat -w, 2))
 
             loss = lossd['loss']
 
@@ -185,17 +203,17 @@ def train(epoch, net, device, train_data, optimizer, batches_per_epoch, vis=Fals
             loss.backward()
             optimizer.step()
 
-            # Display the images
-            if vis:
-                imgs = []
-                n_img = min(4, x.shape[0])
-                for idx in range(n_img):
-                    imgs.extend([x[idx,].numpy().squeeze()] + [yi[idx,].numpy().squeeze() for yi in y] + [
-                        x[idx,].numpy().squeeze()] + [pc[idx,].detach().cpu().numpy().squeeze() for pc in lossd['pred'].values()])
-                gridshow('Display', imgs,
-                         [(xc.min().item(), xc.max().item()), (0.0, 1.0), (0.0, 1.0), (-1.0, 1.0), (0.0, 1.0)] * 2 * n_img,
-                         [cv2.COLORMAP_BONE] * 10 * n_img, 10)
-                cv2.waitKey(2)
+            # # Display the images
+            # if vis:
+            #     imgs = []
+            #     n_img = min(4, x.shape[0])
+            #     for idx in range(n_img):
+            #         imgs.extend([x[idx,].numpy().squeeze()] + [yi[idx,].numpy().squeeze() for yi in y] + [
+            #             x[idx,].numpy().squeeze()] + [pc[idx,].detach().cpu().numpy().squeeze() for pc in lossd['pred'].values()])
+            #     gridshow('Display', imgs,
+            #              [(xc.min().item(), xc.max().item()), (0.0, 1.0), (0.0, 1.0), (-1.0, 1.0), (0.0, 1.0)] * 2 * n_img,
+            #              [cv2.COLORMAP_BONE] * 10 * n_img, 10)
+            #     cv2.waitKey(2)
 
     results['loss'] /= batch_idx
     for l in results['losses']:
@@ -294,7 +312,9 @@ def run():
 
 if __name__ == '__main__':
     run()
-    
+
+
+
 #     x, y, tan, h, w = bboxes_to_grasps(bboxes)
 #     x_hat, y_hat, tan_hat, h_hat, w_hat = torch.unbind(model(images), axis=1) # list
 

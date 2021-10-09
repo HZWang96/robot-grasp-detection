@@ -52,8 +52,22 @@ class opts(object):
         parser.add_argument('--logdir', type=str, default='tensorboard/', help='Log directory')
         parser.add_argument('--vis', action='store_true', help='Visualise the training process')
 
-        # Image preprocessing.
-        parser.add_argument('--image-size', type=int, default=224, help='Image size')
+        # # Image preprocessing.
+        # parser.add_argument('--image-size', type=int, default=224, help='Image size')
+
+        #eval_model
+        # Network
+        parser.add_argument('--trained-network', type=str, help='Path to saved network to evaluate')
+
+        # Dataset & Data & Training
+        parser.add_argument('--eval-use-depth', type=int, default=0, help='Use Depth image for evaluation (1/0)')
+        parser.add_argument('--eval-use-rgb', type=int, default=1, help='Use RGB image for evaluation (0/1)')
+        parser.add_argument('--augment', action='store_true', help='Whether data augmentation should be applied')
+
+        parser.add_argument('--n-grasps', type=int, default=1, help='Number of grasps to consider per image')
+        parser.add_argument('--iou-eval', action='store_true', help='Compute success based on IoU metric.')
+        parser.add_argument('--jacquard-output', action='store_true', help='Jacquard-dataset style output')
+        parser.add_argument('--eval-vis', action='store_true', help='Visualise the network output')
     
     def parse(self, args=''):
         if args == '':
