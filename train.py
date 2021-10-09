@@ -137,48 +137,48 @@ def train():
 
 
 def run():
-    args = parse_args()
+    opt = opts()
 
     # Vis window
-    if args.vis:
+    if opt.vis:
         cv2.namedWindow('Display', cv2.WINDOW_NORMAL)
 
     # Set-up output directories
     dt = datetime.datetime.now().strftime('%y%m%d_%H%M')
-    net_desc = '{}_{}'.format(dt, '_'.join(args.description.split()))
+    net_desc = '{}_{}'.format(dt, '_'.join(opt.description.split()))
 
-    save_folder = os.path.join(args.outdir, net_desc)
+    save_folder = os.path.join(opt.outdir, net_desc)
     if not os.path.exists(save_folder):
         os.makedirs(save_folder)
-    tb = tensorboardX.SummaryWriter(os.path.join(args.logdir, net_desc))
+    tb = tensorboardX.SummaryWriter(os.path.join(opt.logdir, net_desc))
 
     # Load Dataset
-    logging.info('Loading {} Dataset...'.format(args.dataset.title()))
-    Dataset = get_dataset(args.dataset)
+    logging.info('Loading {} Dataset...'.format(opt.dataset.title()))
+    Dataset = get_dataset(opt.dataset)
 
-    train_dataset = Dataset(args.dataset_path, start=0.0, end=args.split, ds_rotate=args.ds_rotate,
+    train_dataset = Dataset(opt.dataset_path, start=0.0, end=opt.split, ds_rotate=opt.ds_rotate,
                             random_rotate=True, random_zoom=True,
-                            include_depth=args.use_depth, include_rgb=args.use_rgb)
+                            include_depth=opt.use_depth, include_rgb=opt.use_rgb)
     train_data = torch.utils.data.DataLoader(
         train_dataset,
-        batch_size=args.batch_size,
+        batch_size=opt.batch_size,
         shuffle=True,
-        num_workers=args.num_workers
+        num_workers=opt.num_workers
     )
-    val_dataset = Dataset(args.dataset_path, start=args.split, end=1.0, ds_rotate=args.ds_rotate,
+    val_dataset = Dataset(opt.dataset_path, start=opt.split, end=1.0, ds_rotate=opt.ds_rotate,
                           random_rotate=True, random_zoom=True,
-                          include_depth=args.use_depth, include_rgb=args.use_rgb)
+                          include_depth=opt.use_depth, include_rgb=opt.use_rgb)
     val_data = torch.utils.data.DataLoader(
         val_dataset,
         batch_size=1,
         shuffle=False,
-        num_workers=args.num_workers
+        num_workers=opt.num_workers
     )
     logging.info('Done')
 
     # Load the network
     logging.info('Loading Network...')
-    input_channels = 3*args.use_rgb             #  1*args.use_depth + 3*args.use_rgb
+    input_channels = 3*opt.use_rgb             #  1*args.use_depth + 3*args.use_rgb
     # ggcnn = get_network(args.network)
     net = resnet_50                                      #   ggcnn(input_channels=input_channels)
     device = torch.device("cuda:0")
@@ -195,9 +195,9 @@ def run():
     f.close()
 
     best_iou = 0.0
-    for epoch in range(args.epochs):
+    for epoch in range(opt.epochs):
         logging.info('Beginning Epoch {:02d}'.format(epoch))
-        train_results = train(epoch, net, device, train_data, optimizer, args.batches_per_epoch, vis=args.vis)
+        train_results = train(epoch, net, device, train_data, optimizer, opt.batches_per_epoch, vis=opt.vis)
 
         # Log training losses to tensorboard
         tb.add_scalar('loss/train_loss', train_results['loss'], epoch)
@@ -206,7 +206,7 @@ def run():
 
         # Run Validation
         logging.info('Validating...')
-        test_results = validate(net, device, val_data, args.val_batches)
+        test_results = validate(net, device, val_data, opt.val_batches)
         logging.info('%d/%d = %f' % (test_results['correct'], test_results['correct'] + test_results['failed'],
                                      test_results['correct']/(test_results['correct']+test_results['failed'])))
 
