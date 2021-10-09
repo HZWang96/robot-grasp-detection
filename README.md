@@ -5,13 +5,13 @@
 1. Create a new conda environment:
     
     ```bash
-    conda create -n ggcnn python=3.6
+    conda create -n gcnn python=3.6
     ```
     
 2. And activate the environment:
     
     ```bash
-    conda activate ggcnn
+    conda activate gcnn
     ```
     
 3. Install the necessary Python packages:
