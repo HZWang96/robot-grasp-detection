@@ -136,6 +136,74 @@ def train():
     model.training = True
 
 
+def train(epoch, net, device, train_data, optimizer, batches_per_epoch, vis=False):
+    """
+    Run one training epoch
+    :param epoch: Current epoch
+    :param net: Network
+    :param device: Torch device
+    :param train_data: Training Dataset
+    :param optimizer: Optimizer
+    :param batches_per_epoch:  Data batches to train on
+    :param vis:  Visualise training progress
+    :return:  Average Losses for Epoch
+    """
+    results = {
+        'loss': 0,
+        'losses': {
+        }
+    }
+
+    net.train()
+
+    batch_idx = 0
+    # Use batches per epoch to make training on different sized datasets (cornell/jacquard) more equivalent.
+    while batch_idx < batches_per_epoch:
+        for x, y, _, _, _ in train_data:
+            batch_idx += 1
+            if batch_idx >= batches_per_epoch:
+                break
+
+            xc = x.to(device)
+            yc = [yy.to(device) for yy in y]
+            # for yy in y:
+                # yy.to(device)
+            lossd = net.compute_loss(xc, yc)
+
+            loss = lossd['loss']
+
+            if batch_idx % 100 == 0:
+                logging.info('Epoch: {}, Batch: {}, Loss: {:0.4f}'.format(epoch, batch_idx, loss.item()))
+
+            results['loss'] += loss.item()
+            for ln, l in lossd['losses'].items():
+                if ln not in results['losses']:
+                    results['losses'][ln] = 0
+                results['losses'][ln] += l.item()
+
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+
+            # Display the images
+            if vis:
+                imgs = []
+                n_img = min(4, x.shape[0])
+                for idx in range(n_img):
+                    imgs.extend([x[idx,].numpy().squeeze()] + [yi[idx,].numpy().squeeze() for yi in y] + [
+                        x[idx,].numpy().squeeze()] + [pc[idx,].detach().cpu().numpy().squeeze() for pc in lossd['pred'].values()])
+                gridshow('Display', imgs,
+                         [(xc.min().item(), xc.max().item()), (0.0, 1.0), (0.0, 1.0), (-1.0, 1.0), (0.0, 1.0)] * 2 * n_img,
+                         [cv2.COLORMAP_BONE] * 10 * n_img, 10)
+                cv2.waitKey(2)
+
+    results['loss'] /= batch_idx
+    for l in results['losses']:
+        results['losses'][l] /= batch_idx
+
+    return results
+
+
 def run():
     opt = opts()
 
@@ -301,5 +369,5 @@ if __name__ == '__main__':
 
 
     
-if __name__ == '__main__':
-    train()
+# if __name__ == '__main__':
+#     train()
