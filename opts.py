@@ -4,7 +4,7 @@ import sys
 
 class opts(object):
     def __init__(self):
-        parser = argparse.ArgumentParser()
+        self.parser = argparse.ArgumentParser()
 
         # parser.add_argument('--learning_rate', type=float, default=0.001,
         #                     help='Initial learning rate.')
@@ -29,45 +29,45 @@ class opts(object):
 
         # Copy from GG-CNN Code
         # Network
-        parser.add_argument('--network', type=str, default='ggcnn', help='Network Name in .models')
+        self.parser.add_argument('--network', type=str, default='ggcnn', help='Network Name in .models')
 
         # Dataset & Data & Training
-        parser.add_argument('--dataset', type=str, help='Dataset Name ("cornell" or "jaquard")')
-        parser.add_argument('--dataset-path', type=str, help='Path to dataset')
-        parser.add_argument('--use-depth', type=int, default=0, help='Use Depth image for training (1/0)')
-        parser.add_argument('--use-rgb', type=int, default=1, help='Use RGB image for training (0/1)')
-        parser.add_argument('--split', type=float, default=0.9, help='Fraction of data for training (remainder is validation)')
-        parser.add_argument('--ds-rotate', type=float, default=0.0,
+        self.parser.add_argument('--dataset', type=str, help='Dataset Name ("cornell" or "jaquard")')
+        self.parser.add_argument('--dataset-path', type=str, help='Path to dataset')
+        self.parser.add_argument('--use-depth', type=int, default=0, help='Use Depth image for training (1/0)')
+        self.parser.add_argument('--use-rgb', type=int, default=1, help='Use RGB image for training (0/1)')
+        self.parser.add_argument('--split', type=float, default=0.9, help='Fraction of data for training (remainder is validation)')
+        self.parser.add_argument('--ds-rotate', type=float, default=0.0,
                             help='Shift the start point of the dataset to use a different test/train split for cross validation.')
-        parser.add_argument('--num-workers', type=int, default=8, help='Dataset workers')
+        self.parser.add_argument('--num-workers', type=int, default=8, help='Dataset workers')
 
-        parser.add_argument('--batch-size', type=int, default=8, help='Batch size')
-        parser.add_argument('--epochs', type=int, default=50, help='Training epochs')
-        parser.add_argument('--batches-per-epoch', type=int, default=1000, help='Batches per Epoch')
-        parser.add_argument('--val-batches', type=int, default=250, help='Validation Batches')
+        self.parser.add_argument('--batch-size', type=int, default=8, help='Batch size')
+        self.parser.add_argument('--epochs', type=int, default=50, help='Training epochs')
+        self.parser.add_argument('--batches-per-epoch', type=int, default=1000, help='Batches per Epoch')
+        self.parser.add_argument('--val-batches', type=int, default=250, help='Validation Batches')
 
         # Logging etc.
-        parser.add_argument('--description', type=str, default='', help='Training description')
-        parser.add_argument('--outdir', type=str, default='output/models/', help='Training Output Directory')
-        parser.add_argument('--logdir', type=str, default='tensorboard/', help='Log directory')
-        parser.add_argument('--vis', action='store_true', help='Visualise the training process')
+        self.parser.add_argument('--description', type=str, default='', help='Training description')
+        self.parser.add_argument('--outdir', type=str, default='output/models/', help='Training Output Directory')
+        self.parser.add_argument('--logdir', type=str, default='tensorboard/', help='Log directory')
+        self.parser.add_argument('--vis', action='store_true', help='Visualise the training process')
 
         # # Image preprocessing.
         # parser.add_argument('--image-size', type=int, default=224, help='Image size')
 
         #eval_model
         # Network
-        parser.add_argument('--trained-network', type=str, help='Path to saved network to evaluate')
+        self.parser.add_argument('--trained-network', type=str, help='Path to saved network to evaluate')
 
         # Dataset & Data & Training
-        parser.add_argument('--eval-use-depth', type=int, default=0, help='Use Depth image for evaluation (1/0)')
-        parser.add_argument('--eval-use-rgb', type=int, default=1, help='Use RGB image for evaluation (0/1)')
-        parser.add_argument('--augment', action='store_true', help='Whether data augmentation should be applied')
+        self.parser.add_argument('--eval-use-depth', type=int, default=0, help='Use Depth image for evaluation (1/0)')
+        self.parser.add_argument('--eval-use-rgb', type=int, default=1, help='Use RGB image for evaluation (0/1)')
+        self.parser.add_argument('--augment', action='store_true', help='Whether data augmentation should be applied')
 
-        parser.add_argument('--n-grasps', type=int, default=1, help='Number of grasps to consider per image')
-        parser.add_argument('--iou-eval', action='store_true', help='Compute success based on IoU metric.')
-        parser.add_argument('--jacquard-output', action='store_true', help='Jacquard-dataset style output')
-        parser.add_argument('--eval-vis', action='store_true', help='Visualise the network output')
+        self.parser.add_argument('--n-grasps', type=int, default=1, help='Number of grasps to consider per image')
+        self.parser.add_argument('--iou-eval', action='store_true', help='Compute success based on IoU metric.')
+        self.parser.add_argument('--jacquard-output', action='store_true', help='Jacquard-dataset style output')
+        self.parser.add_argument('--eval-vis', action='store_true', help='Visualise the network output')
     
     def parse(self, args=''):
         if args == '':
@@ -75,4 +75,8 @@ class opts(object):
         else:
             opt = self.parser.parse_args(args)
 
+        return opt
+    
+    def init(self, args=''):
+        opt = self.parse(args)
         return opt
