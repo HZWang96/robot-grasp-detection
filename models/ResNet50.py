@@ -5,7 +5,6 @@ import torch.nn.functional as F
 # from d2l import torch as d2l
 from torchvision import datasets, models, transforms
 import torch.nn as nn
-import torch.optim as optim
 
 class GraspNet(nn.Module):
     def __init__(self):
@@ -54,12 +53,15 @@ def initNetParams(layers):
             if m.bias:
                 init.constant(m.bias, 0)
 
-GraspNet.apply(initNetParams) # 加在init函数里面
-print("Weights are initialized!")
+# GraspNet.apply(initNetParams) # 加在init函数里面
+# print("Weights are initialized!")
 
 
 def get_graspnet():
     
     resnet_50 = GraspNet()
+    resnet_50.apply(initNetParams) # 加在init函数里面
+    print("Weights are initialized!")
+
 
     return resnet_50

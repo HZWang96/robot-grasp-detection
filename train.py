@@ -1,7 +1,7 @@
 ''' 
 Training a network on cornell grasping dataset for detecting grasping positions.
 '''
-from math import cos, sin
+from math import cos, sin  # not needed
 import sys
 import os.path
 import glob
@@ -12,28 +12,26 @@ import numpy as np
 import time
 # import img_preproc
 from bbox_utils import *
-from models.model_utils import *
+# from models.model_utils import *  # not needed
 from opts import opts
 # from shapely.geometry import Polygon
-from data.grasp_data import GraspDataset
+# from data.grasp_data import GraspDatasetBase  # not needed
 import cv2
 import tensorboardX
 import datetime
 import os
-import argparse
+import argparse  # not needed
 import logging
-from .data import get_dataset
-from models.ResNet50 import resnet_50
+from data import get_dataset
+# from models.ResNet50 import resnet_50   # something is wrong here
 import torch.optim as optim
 from torchsummary import summary
 from models.common import post_process_output
 from dataset_processing import evaluation
-from data.grasp_data import bbs
-from models.ResNet50 import resnet_50
-from data.grasp_data import rgb_img
+# from data.grasp_data import bbs      # not needed
+from models.ResNet50 import get_graspnet
+# from data.grasp_data import rgb_img   # not needed
 
-
-# import tensorflow as tf
 
 def validate(net, device, val_data, batches_per_epoch):
     """
@@ -178,7 +176,7 @@ def train(epoch, net, device, train_data, optimizer, batches_per_epoch, vis=Fals
             w = width
             tan = sin/cos
             h = w*tan
-            x_hat, y_hat, tan_hat, h_hat, w_hat = torch.unbind(resnet_50(rgb_img), axis=1) # list
+            x_hat, y_hat, tan_hat, h_hat, w_hat = torch.unbind(net(rgb_img), axis=1) # list
 
             # tangent of 85 degree is 11 
             tan_hat_confined = torch.minimum(11., torch.maximum(-11., tan_hat))
@@ -223,7 +221,7 @@ def train(epoch, net, device, train_data, optimizer, batches_per_epoch, vis=Fals
 
 
 def run():
-    opt = opts()
+    opt = opts().init()
 
     # Vis window
     if opt.vis:
@@ -266,10 +264,10 @@ def run():
     logging.info('Loading Network...')
     input_channels = 3*opt.use_rgb             #  1*args.use_depth + 3*args.use_rgb
     # ggcnn = get_network(args.network)
-    net = resnet_50                                      #   ggcnn(input_channels=input_channels)
+    net = get_graspnet()  # not resnet_50                                      #   ggcnn(input_channels=input_channels)
     device = torch.device("cuda:0")
     net = net.to(device)
-    optimizer = optim.Adam(net.parameters())
+    optimizer = optim.Adam(net.parameters())  
     logging.info('Done')
 
     # Print model architecture.
@@ -285,29 +283,29 @@ def run():
         logging.info('Beginning Epoch {:02d}'.format(epoch))
         train_results = train(epoch, net, device, train_data, optimizer, opt.batches_per_epoch, vis=opt.vis)
 
-        # Log training losses to tensorboard
-        tb.add_scalar('loss/train_loss', train_results['loss'], epoch)
-        for n, l in train_results['losses'].items():
-            tb.add_scalar('train_loss/' + n, l, epoch)
+        # # Log training losses to tensorboard
+        # tb.add_scalar('loss/train_loss', train_results['loss'], epoch)
+        # for n, l in train_results['losses'].items():
+        #     tb.add_scalar('train_loss/' + n, l, epoch)
 
-        # Run Validation
-        logging.info('Validating...')
-        test_results = validate(net, device, val_data, opt.val_batches)
-        logging.info('%d/%d = %f' % (test_results['correct'], test_results['correct'] + test_results['failed'],
-                                     test_results['correct']/(test_results['correct']+test_results['failed'])))
+        # # Run Validation
+        # logging.info('Validating...')
+        # test_results = validate(net, device, val_data, opt.val_batches)
+        # logging.info('%d/%d = %f' % (test_results['correct'], test_results['correct'] + test_results['failed'],
+        #                              test_results['correct']/(test_results['correct']+test_results['failed'])))
 
-        # Log validation results to tensorbaord
-        tb.add_scalar('loss/IOU', test_results['correct'] / (test_results['correct'] + test_results['failed']), epoch)
-        tb.add_scalar('loss/val_loss', test_results['loss'], epoch)
-        for n, l in test_results['losses'].items():
-            tb.add_scalar('val_loss/' + n, l, epoch)
+        # # Log validation results to tensorbaord
+        # tb.add_scalar('loss/IOU', test_results['correct'] / (test_results['correct'] + test_results['failed']), epoch)
+        # tb.add_scalar('loss/val_loss', test_results['loss'], epoch)
+        # for n, l in test_results['losses'].items():
+        #     tb.add_scalar('val_loss/' + n, l, epoch)
 
-        # Save best performing network
-        iou = test_results['correct'] / (test_results['correct'] + test_results['failed'])
-        if iou > best_iou or epoch == 0 or (epoch % 10) == 0:
-            torch.save(net, os.path.join(save_folder, 'epoch_%02d_iou_%0.2f' % (epoch, iou)))
-            torch.save(net.state_dict(), os.path.join(save_folder, 'epoch_%02d_iou_%0.2f_statedict.pt' % (epoch, iou)))
-            best_iou = iou
+        # # Save best performing network
+        # iou = test_results['correct'] / (test_results['correct'] + test_results['failed'])
+        # if iou > best_iou or epoch == 0 or (epoch % 10) == 0:
+        #     torch.save(net, os.path.join(save_folder, 'epoch_%02d_iou_%0.2f' % (epoch, iou)))
+        #     torch.save(net.state_dict(), os.path.join(save_folder, 'epoch_%02d_iou_%0.2f_statedict.pt' % (epoch, iou)))
+        #     best_iou = iou
 
 
 if __name__ == '__main__':
