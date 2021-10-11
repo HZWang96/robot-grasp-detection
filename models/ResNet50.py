@@ -2,6 +2,7 @@ import torch
 from torch import nn
 from torch.nn import init
 import torch.nn.functional as F
+from torchsummary import summary
 # from d2l import torch as d2l
 from torchvision import datasets, models, transforms
 import torch.nn as nn
@@ -9,18 +10,16 @@ import torch.nn as nn
 class GraspNet(nn.Module):
     def __init__(self):
         super().__init__()
-        #### TODO: Write the code for the model architecture below ####
         
-        ################################################################
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         print(device)
 
-        model = models.resnet50(pretrained=True).to(device)
+        self.model = models.resnet50(pretrained=True).to(device)
 
-        for param in model.parameters():
+        for param in self.model.parameters():
             param.requires_grad = False
 
-        model.fc = nn.Sequential(
+        self.model.fc = nn.Sequential(
         nn.Linear(2048, 1024),
         nn.ReLU(inplace=True),
         nn.Dropout(p=0.2),
@@ -28,15 +27,14 @@ class GraspNet(nn.Module):
         nn.Dropout(p=0.2),
         nn.Linear(1024, 5))
 
-    # def forward(self, x):
-        #### TODO: Write the code for the model architecture below ####
-        
-        ################################################################
-        # return x
+    def forward(self, input):
+        output = self.model(input)
+        return output
 
 # Model initialization
 def initNetParams(layers):
     for m in layers.modules():
+        # print(m)
         if isinstance(m, nn.Conv2d):
             # nn.init.normal_(m.weight, std=0.001)
             # nn.init.kaiming_uniform_(m.weight, nonlinearity='relu')
@@ -53,14 +51,13 @@ def initNetParams(layers):
             if m.bias:
                 init.constant(m.bias, 0)
 
-# GraspNet.apply(initNetParams) # 加在init函数里面
-# print("Weights are initialized!")
-
 
 def get_graspnet():
     
     resnet_50 = GraspNet()
-    resnet_50.apply(initNetParams) # 加在init函数里面
+    resnet_50.apply(initNetParams)
+    summary(resnet_50, (3, 224, 224))
+
     print("Weights are initialized!")
 
 

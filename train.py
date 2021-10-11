@@ -264,7 +264,7 @@ def run():
     logging.info('Loading Network...')
     input_channels = 3*opt.use_rgb             #  1*args.use_depth + 3*args.use_rgb
     # ggcnn = get_network(args.network)
-    net = get_graspnet()  # not resnet_50                                      #   ggcnn(input_channels=input_channels)
+    net = get_graspnet()                       #   ggcnn(input_channels=input_channels)
     device = torch.device("cuda:0")
     net = net.to(device)
     optimizer = optim.Adam(net.parameters())  
