@@ -87,7 +87,6 @@ class GraspRectangles:
                 except ValueError:
                     # Some files contain weird values.
                     continue
-        print(GraspRectangle(gr).center)
         return cls(grs)
 
     @classmethod

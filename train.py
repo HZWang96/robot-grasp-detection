@@ -172,11 +172,11 @@ def train(epoch, net, device, train_data, optimizer, batches_per_epoch, vis=Fals
                 # yy.to(device)
             # x, y, tan, h, w = bboxes_to_grasps(bbs)
             pos, cos, sin, width = grasp_pose
-            x, y = pos
-            w = width
-            tan = sin/cos
-            h = w*tan
-            x_hat, y_hat, tan_hat, h_hat, w_hat = torch.unbind(net(rgb_img), axis=1) # list
+            # x, y = pos
+            # w = width
+            # tan = sin/cos
+            # h = w*tan
+            # x_hat, y_hat, tan_hat, h_hat, w_hat = torch.unbind(net(rgb_img), axis=1) # list
 
             # tangent of 85 degree is 11 
             tan_hat_confined = torch.minimum(11., torch.maximum(-11., tan_hat))

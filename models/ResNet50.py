@@ -48,17 +48,15 @@ def initNetParams(layers):
         elif isinstance(m, nn.Linear):
             # init.normal(m.weight, std=0.001)
             torch.nn.init.xavier_normal_(m.weight.data)
-            if m.bias:
+            if m.bias is not None:
                 init.constant(m.bias, 0)
 
 
 def get_graspnet():
     
     resnet_50 = GraspNet()
+    print("Initializing weights...")
     resnet_50.apply(initNetParams)
-    summary(resnet_50, (3, 224, 224))
-
     print("Weights are initialized!")
-
 
     return resnet_50
