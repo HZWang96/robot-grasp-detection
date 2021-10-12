@@ -27,7 +27,7 @@ from data import get_dataset
 import torch.optim as optim
 from torchsummary import summary
 from models.common import post_process_output
-from dataset_processing import evaluation
+from dataset_processing import evaluation, grasp
 # from data.grasp_data import bbs      # not needed
 from models.ResNet50 import get_graspnet
 # from data.grasp_data import rgb_img   # not needed
@@ -156,22 +156,32 @@ def train(epoch, net, device, train_data, optimizer, batches_per_epoch, vis=Fals
         }
     }
 
-    net.train()
+    # net.train()
 
     batch_idx = 0
     # Use batches per epoch to make training on different sized datasets (cornell/jacquard) more equivalent.
     while batch_idx < batches_per_epoch:
-        for rgb_img, grasp_pose, _, _, _ in train_data:
+        for rgb_img, bbs in train_data:
+            print(grasp.GraspRectangle(bbs[0].as_grasp))
+            # for i in bbs:
+            #     center,angle,width,length = bbs[i].center,bbs[i].angle,bbs[i].width,bbs[i].length
+            #     print(center,angle,width,length)
+                    # x = bbs[0].center[1]
+
+            # print(bbs)
             batch_idx += 1
-            if batch_idx >= batches_per_epoch:
+            # if batch_idx >= batches_per_epoch:
+            #     break
+            if batch_idx == 1:
                 break
+        break
 
             # xc = x.to(device)
             # yc = [yy.to(device) for yy in y]
             # for yy in y:
                 # yy.to(device)
             # x, y, tan, h, w = bboxes_to_grasps(bbs)
-            pos, cos, sin, width = grasp_pose
+            # pos, cos, sin, width = grasp_pose
             # x, y = pos
             # w = width
             # tan = sin/cos
@@ -179,27 +189,37 @@ def train(epoch, net, device, train_data, optimizer, batches_per_epoch, vis=Fals
             # x_hat, y_hat, tan_hat, h_hat, w_hat = torch.unbind(net(rgb_img), axis=1) # list
 
             # tangent of 85 degree is 11 
-            tan_hat_confined = torch.minimum(11., torch.maximum(-11., tan_hat))
-            tan_confined = torch.minimum(11., torch.maximum(-11., tan))
-            # loss function
-            # lossd = net.compute_loss(xc, yc)
-            gamma = torch.Tensor(10.)
-            lossd = torch.sum(torch.pow(x_hat -x, 2) +torch.pow(y_hat -y, 2) + gamma*torch.pow(tan_hat_confined - tan_confined, 2) +torch.pow(h_hat -h, 2) +torch.pow(w_hat -w, 2))
 
-            loss = lossd['loss']
 
-            if batch_idx % 100 == 0:
-                logging.info('Epoch: {}, Batch: {}, Loss: {:0.4f}'.format(epoch, batch_idx, loss.item()))
 
-            results['loss'] += loss.item()
-            for ln, l in lossd['losses'].items():
-                if ln not in results['losses']:
-                    results['losses'][ln] = 0
-                results['losses'][ln] += l.item()
 
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
+            #有用的代码
+            # tan_hat_confined = torch.minimum(11., torch.maximum(-11., tan_hat))
+            # tan_confined = torch.minimum(11., torch.maximum(-11., tan))
+            # # loss function
+            # # lossd = net.compute_loss(xc, yc)
+            # gamma = torch.Tensor(10.)
+            # lossd = torch.sum(torch.pow(x_hat -x, 2) +torch.pow(y_hat -y, 2) + gamma*torch.pow(tan_hat_confined - tan_confined, 2) +torch.pow(h_hat -h, 2) +torch.pow(w_hat -w, 2))
+
+            # loss = lossd['loss']
+
+            # if batch_idx % 100 == 0:# from .grasp import GraspRectangle
+            #     logging.info('Epoch: {}, Batch: {}, Loss: {:0.4f}'.format(epoch, batch_idx, loss.item()))
+
+            # results['loss'] += loss.item()
+            # for ln, l in lossd['losses'].items():
+            #     if ln not in results['losses']:
+            #         results['losses'][ln] = 0
+            #     results['losses'][ln] += l.item()
+
+            # optimizer.zero_grad()
+            # loss.backward()
+            # optimizer.step()
+
+
+
+
+
 
             # # Display the images
             # if vis:
@@ -213,11 +233,13 @@ def train(epoch, net, device, train_data, optimizer, batches_per_epoch, vis=Fals
             #              [cv2.COLORMAP_BONE] * 10 * n_img, 10)
             #     cv2.waitKey(2)
 
-    results['loss'] /= batch_idx
-    for l in results['losses']:
-        results['losses'][l] /= batch_idx
 
-    return results
+    #有用的代码
+    # results['loss'] /= batch_idx
+    # for l in results['losses']:
+    #     results['losses'][l] /= batch_idx
+
+    # return results
 
 
 def run():
@@ -262,7 +284,7 @@ def run():
 
     # Load the network
     logging.info('Loading Network...')
-    input_channels = 3*opt.use_rgb             #  1*args.use_depth + 3*args.use_rgb
+    input_channels = 3 #*opt.use_rgb             #  1*args.use_depth + 3*args.use_rgb
     # ggcnn = get_network(args.network)
     net = get_graspnet()                       #   ggcnn(input_channels=input_channels)
     device = torch.device("cuda:0")

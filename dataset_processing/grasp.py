@@ -68,6 +68,7 @@ class GraspRectangles:
         """
         grs = []
         with open(fname) as f:
+            print("Filename: ", fname)
             while True:
                 # Load 4 lines at a time, corners of bounding box.
                 p0 = f.readline()
@@ -87,8 +88,9 @@ class GraspRectangles:
                 except ValueError:
                     # Some files contain weird values.
                     continue
-        print(GraspRectangle(gr).center)
-        return cls(grs)
+        # print(gr)
+        # print(GraspRectangle(gr).center)
+        return cls(grs)                              #保证输出的class是GraspRectangle
 
     @classmethod
     def load_from_jacquard_file(cls, fname, scale=1.0):
@@ -189,7 +191,7 @@ class GraspRectangles:
     def center(self):
         """
         Compute mean center of all GraspRectangles
-        :return: float, mean centre of all GraspRectangles
+        :return: float, mean centre of all GraspRectangles  当输入多个bbx时可以计算出center中心点的平均值。
         """
         points = [gr.points for gr in self.grs]
         return np.mean(np.vstack(points), axis=0).astype(np.int)
