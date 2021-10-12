@@ -1,9 +1,9 @@
 import numpy as np
-
 import torch
 import torch.utils.data
-
 import random
+
+from .grasp import GraspRectangle
 
 
 class GraspDatasetBase(torch.utils.data.Dataset):
@@ -69,30 +69,32 @@ class GraspDatasetBase(torch.utils.data.Dataset):
             rgb_img = self.get_rgb(idx, rot, zoom_factor)
 
         # Load the grasps
-        bbs = self.get_gtbb(idx, rot, zoom_factor)
+        bbs = self.get_gtbb(idx, rot, zoom_factor)  # <class 'dataset_processing.grasp.GraspRectangles'>
 
         pos_img, ang_img, width_img = bbs.draw((self.output_size, self.output_size))
-        width_img = np.clip(width_img, 0.0, 150.0)/150.0
+        
+        # width_img = np.clip(width_img, 0.0, 150.0)/150.0
 
-        if self.include_depth and self.include_rgb:
-            x = self.numpy_to_torch(
-                np.concatenate(
-                    (np.expand_dims(depth_img, 0),
-                     rgb_img),
-                    0
-                )
-            )
-        elif self.include_depth:
-            x = self.numpy_to_torch(depth_img)
-        elif self.include_rgb:
-            x = self.numpy_to_torch(rgb_img)
+        # if self.include_depth and self.include_rgb:
+        #     x = self.numpy_to_torch(
+        #         np.concatenate(
+        #             (np.expand_dims(depth_img, 0),
+        #              rgb_img),
+        #             0
+        #         )
+        #     )
+        # elif self.include_depth:
+        #     x = self.numpy_to_torch(depth_img)
+        # elif self.include_rgb:
+        #     x = self.numpy_to_torch(rgb_img)
 
-        pos = self.numpy_to_torch(pos_img)
-        cos = self.numpy_to_torch(np.cos(2*ang_img))
-        sin = self.numpy_to_torch(np.sin(2*ang_img))
-        width = self.numpy_to_torch(width_img)
+        # pos = self.numpy_to_torch(pos_img)
+        # cos = self.numpy_to_torch(np.cos(2*ang_img))
+        # sin = self.numpy_to_torch(np.sin(2*ang_img))
+        # width = self.numpy_to_torch(width_img)
 
-        return x, (pos, cos, sin, width), idx, rot, zoom_factor
+        # return x, (pos, cos, sin, width), idx, rot, zoom_factor
+        return bbs
 
     def __len__(self):
         return len(self.grasp_files)
