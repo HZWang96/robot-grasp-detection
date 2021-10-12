@@ -161,21 +161,17 @@ def train(epoch, net, device, train_data, optimizer, batches_per_epoch, vis=Fals
     batch_idx = 0
     # Use batches per epoch to make training on different sized datasets (cornell/jacquard) more equivalent.
     while batch_idx < batches_per_epoch:
-        for rgb_img, bbs in train_data:
-            print(grasp.GraspRectangle(bbs[0].as_grasp))
-            # for i in bbs:
-            #     center,angle,width,length = bbs[i].center,bbs[i].angle,bbs[i].width,bbs[i].length
-            #     print(center,angle,width,length)
-                    # x = bbs[0].center[1]
+        for rgb_img, grasp_labels in train_data:
+            train_img = rgb_img.to(device)
+            gt = [grasp_label.to(device) for grasp_label in grasp_labels]
 
-            # print(bbs)
             batch_idx += 1
             # if batch_idx >= batches_per_epoch:
             #     break
             if batch_idx == 1:
                 break
         break
-
+            # train_img = rgb_img.to(device)
             # xc = x.to(device)
             # yc = [yy.to(device) for yy in y]
             # for yy in y:

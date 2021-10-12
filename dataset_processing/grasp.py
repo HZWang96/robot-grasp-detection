@@ -68,7 +68,7 @@ class GraspRectangles:
         """
         grs = []
         with open(fname) as f:
-            print("Filename: ", fname)
+            # print("Filename: ", fname)
             while True:
                 # Load 4 lines at a time, corners of bounding box.
                 p0 = f.readline()
@@ -90,6 +90,9 @@ class GraspRectangles:
                     continue
         # print(gr)
         # print(GraspRectangle(gr).center)
+        # print("Load from cornell files: ")
+        # for i in range(len(grs)):
+        #     print(grs[i])
         return cls(grs)                              #保证输出的class是GraspRectangle
 
     @classmethod

@@ -45,6 +45,9 @@ class CornellDataset(GraspDatasetBase):
     def get_gtbb(self, idx, rot=0, zoom=1.0):
         gtbbs = grasp.GraspRectangles.load_from_cornell_file(self.grasp_files[idx])
         center, left, top = self._get_crop_attrs(idx)
+        # print("Center:", center)
+        # print("Left:", left)
+        # print("Top:", top)
         gtbbs.rotate(rot, center)
         gtbbs.offset((-top, -left))
         gtbbs.zoom(zoom, (self.output_size//2, self.output_size//2))

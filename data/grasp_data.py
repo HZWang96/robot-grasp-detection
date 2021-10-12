@@ -2,6 +2,9 @@ import numpy as np
 import torch
 import torch.utils.data
 import random
+from data import grasp
+
+from data.grasp import GraspRectangle
 
 
 class GraspDatasetBase(torch.utils.data.Dataset):
@@ -67,10 +70,16 @@ class GraspDatasetBase(torch.utils.data.Dataset):
             rgb_img = self.get_rgb(idx, rot, zoom_factor)
 
         # Load the grasps
+        grasp_labels = []
         bbs = self.get_gtbb(idx, rot, zoom_factor)  # <class 'dataset_processing.grasp.GraspRectangles'>
         bbs = bbs.to_array()
         print(bbs.shape)
-        print(bbs)
+        for i in range(bbs.shape[0]):
+            grasp_labels.append([GraspRectangle(bbs[i]).center[1], GraspRectangle(bbs[i]).center[0], GraspRectangle(bbs[i]).angle, GraspRectangle(bbs[i]).length, GraspRectangle(bbs[i]).width])
+        # print(np.array(grasp_labels))
+        # print("\n\n")
+        # print(bbs.shape)
+        # print(bbs)
         # print("Angle:",bbs[0].angle)
         # # print(bbs[0].angle)
         # print("Center:",bbs[0].center)
@@ -102,7 +111,7 @@ class GraspDatasetBase(torch.utils.data.Dataset):
         # width = self.numpy_to_torch(width_img)
 
         # return x, (pos, cos, sin, width), idx, rot, zoom_factor
-        return rgb_img, bbs
+        return rgb_img, np.array(grasp_labels)
 
     def __len__(self):
         return len(self.grasp_files)
