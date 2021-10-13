@@ -159,7 +159,6 @@ def train(epoch, net, device, train_data, optimizer, batches_per_epoch, vis=Fals
         lossd = net.compute_loss(train_img, gt)
 
         loss = lossd['loss']
-        print(loss)
 
         logging.info('Epoch: {}, Batch: {}, Loss: {:0.4f}'.format(epoch, batch_idx, loss.item()))
 
