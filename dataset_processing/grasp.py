@@ -88,11 +88,6 @@ class GraspRectangles:
                 except ValueError:
                     # Some files contain weird values.
                     continue
-        # print(gr)
-        # print(GraspRectangle(gr).center)
-        # print("Load from cornell files: ")
-        # for i in range(len(grs)):
-        #     print(grs[i])
         return cls(grs)                              #保证输出的class是GraspRectangles
 
     @classmethod

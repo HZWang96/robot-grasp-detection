@@ -39,7 +39,7 @@ class opts(object):
         self.parser.add_argument('--split', type=float, default=0.9, help='Fraction of data for training (remainder is validation)')
         self.parser.add_argument('--ds-rotate', type=float, default=0.0,
                             help='Shift the start point of the dataset to use a different test/train split for cross validation.')
-        self.parser.add_argument('--num-workers', type=int, default=0, help='Dataset workers')
+        self.parser.add_argument('--num-workers', type=int, default=8, help='Dataset workers')
 
         self.parser.add_argument('--batch-size', type=int, default=1, help='Batch size')
         self.parser.add_argument('--epochs', type=int, default=50, help='Training epochs')

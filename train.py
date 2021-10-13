@@ -295,7 +295,7 @@ def run():
     net = get_graspnet()                       #   ggcnn(input_channels=input_channels)
     device = torch.device("cuda:0")
     net = net.to(device)
-    optimizer = optim.Adam(net.parameters())  
+    optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, net.parameters()))
     logging.info('Done')
 
     # Print model architecture.

@@ -11,7 +11,7 @@ class GraspDatasetBase(torch.utils.data.Dataset):
     """
     An abstract dataset for training ResNet-50 in a common format.
     """
-    def __init__(self, output_size=224, include_depth=False, include_rgb=True, random_rotate=False,
+    def __init__(self, output_size=224, include_depth=True, include_rgb=False, random_rotate=False,
                  random_zoom=False, input_only=False):
         """
         :param output_size: Image output size in pixels (square)
@@ -75,23 +75,16 @@ class GraspDatasetBase(torch.utils.data.Dataset):
         bbs = bbs.to_array()
         for i in range(bbs.shape[0]):
             grasp_labels.append([GraspRectangle(bbs[i]).center[1], GraspRectangle(bbs[i]).center[0], GraspRectangle(bbs[i]).angle, GraspRectangle(bbs[i]).width, GraspRectangle(bbs[i]).length])
-        # print(np.array(grasp_labels))
-        # print("\n\n")
-        # print(bbs.shape)
-        # print(bbs)
-        # print("Angle:",bbs[0].angle)
-        # # print(bbs[0].angle)
-        # print("Center:",bbs[0].center)
-        # # print(bbs[2].center)
-        # print("Length:",bbs[0].length)
-        # # print(bbs[2].length)
-        # print("Width:",bbs[0].width)
-        # # print(bbs[2].width)
         # pos_img, ang_img, width_img = bbs.draw((self.output_size, self.output_size))
         
         # width_img = np.clip(width_img, 0.0, 150.0)/150.0
 
-        # if self.include_depth and self.include_rgb:
+        if self.include_depth and self.include_rgb:
+            x = self.numpy_to_torch(
+                np.concatenate(
+                    (np.expand_dims(depth_img, 0),
+                     rgb_img),
+                    0# if self.include_depth and self.include_rgb:
         #     x = self.numpy_to_torch(
         #         np.concatenate(
         #             (np.expand_dims(depth_img, 0),
@@ -104,13 +97,20 @@ class GraspDatasetBase(torch.utils.data.Dataset):
         # elif self.include_rgb:
         #     x = self.numpy_to_torch(rgb_img)
 
+                )
+            )
+        elif self.include_depth:
+            x = self.numpy_to_torch(depth_img)
+        elif self.include_rgb:
+            x = self.numpy_to_torch(rgb_img)
+
         # pos = self.numpy_to_torch(pos_img)
         # cos = self.numpy_to_torch(np.cos(2*ang_img))
         # sin = self.numpy_to_torch(np.sin(2*ang_img))
         # width = self.numpy_to_torch(width_img)
 
         # return x, (pos, cos, sin, width), idx, rot, zoom_factor
-        return rgb_img, np.array(grasp_labels)
+        return x, np.array(grasp_labels)
 
     def __len__(self):
         return len(self.grasp_files)
