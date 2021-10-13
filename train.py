@@ -1,37 +1,27 @@
 ''' 
 Training a network on cornell grasping dataset for detecting grasping positions.
 '''
-from math import cos, sin  # not needed
 import sys
 import os.path
 import glob
 import torch
 import torch.utils.data
 import numpy as np
-# from logger import Logger
 import time
-# import img_preproc
-from bbox_utils import *
-# from models.model_utils import *  # not needed
 from opts import opts
-# from shapely.geometry import Polygon
-# from data.grasp_data import GraspDatasetBase  # not needed
 import cv2
 import tensorboardX
 import datetime
 import os
-import argparse  # not needed
 import logging
 from data import get_dataset
-# from models.ResNet50 import resnet_50   # something is wrong here
 import torch.optim as optim
 from torchsummary import summary
 from models.common import post_process_output
 from dataset_processing import evaluation, grasp
-# from data.grasp_data import bbs      # not needed
 from models.ResNet50 import get_graspnet
-# from data.grasp_data import rgb_img   # not needed
 
+logging.basicConfig(level=logging.INFO)
 
 def validate(net, device, val_data, batches_per_epoch):
     """
@@ -156,32 +146,53 @@ def train(epoch, net, device, train_data, optimizer, batches_per_epoch, vis=Fals
         }
     }
 
-    # net.train()
+    net.train()
 
     batch_idx = 0
     # Use batches per epoch to make training on different sized datasets (cornell/jacquard) more equivalent.
-    while batch_idx < batches_per_epoch:
-        for rgb_img, grasp_labels in train_data:
-            train_img = rgb_img.to(device)
-            gt = [grasp_label.to(device) for grasp_label in grasp_labels]
+    # while batch_idx < batches_per_epoch:
+    for rgb_img, grasp_labels in train_data:
+        batch_idx += 1
 
-            batch_idx += 1
-            # if batch_idx >= batches_per_epoch:
-            #     break
-            if batch_idx == 1:
-                break
-        break
-            # train_img = rgb_img.to(device)
-            # xc = x.to(device)
+        train_img = rgb_img.to(device)
+        gt = [grasp_label.float().to(device) for grasp_label in grasp_labels]
+        lossd = net.compute_loss(train_img, gt)
+
+        loss = lossd['loss']
+        print(loss)
+
+        logging.info('Epoch: {}, Batch: {}, Loss: {:0.4f}'.format(epoch, batch_idx, loss.item()))
+
+        results['loss'] += loss.item()
+        for ln, l in lossd['losses'].items():
+            if ln not in results['losses']:
+                results['losses'][ln] = 0
+            results['losses'][ln] += l.item()
+
+        optimizer.zero_grad()
+        # loss = loss.float()
+        # print(loss.type())
+        loss.backward()
+        optimizer.step()
+
+    results['loss'] /= batch_idx
+    for l in results['losses']:
+        results['losses'][l] /= batch_idx
+
+    return results
+
+
+        # batch_idx += 1
+        # # if batch_idx >= batches_per_epoch:
+        # #     break
+        # if batch_idx == 1:
+        #     break
+        # # break
+            
+            # xc = x.to# from logger import Logger(device)
             # yc = [yy.to(device) for yy in y]
             # for yy in y:
                 # yy.to(device)
-            # x, y, tan, h, w = bboxes_to_grasps(bbs)
-            # pos, cos, sin, width = grasp_pose
-            # x, y = pos
-            # w = width
-            # tan = sin/cos
-            # h = w*tan
             # x_hat, y_hat, tan_hat, h_hat, w_hat = torch.unbind(net(rgb_img), axis=1) # list
 
             # tangent of 85 degree is 11 
@@ -194,7 +205,7 @@ def train(epoch, net, device, train_data, optimizer, batches_per_epoch, vis=Fals
             # tan_confined = torch.minimum(11., torch.maximum(-11., tan))
             # # loss function
             # # lossd = net.compute_loss(xc, yc)
-            # gamma = torch.Tensor(10.)
+            # gamma = torch.tensor(10.)
             # lossd = torch.sum(torch.pow(x_hat -x, 2) +torch.pow(y_hat -y, 2) + gamma*torch.pow(tan_hat_confined - tan_confined, 2) +torch.pow(h_hat -h, 2) +torch.pow(w_hat -w, 2))
 
             # loss = lossd['loss']
@@ -280,7 +291,7 @@ def run():
 
     # Load the network
     logging.info('Loading Network...')
-    input_channels = 3 #*opt.use_rgb             #  1*args.use_depth + 3*args.use_rgb
+    input_channels = 3*opt.use_rgb             #  1*args.use_depth + 3*args.use_rgb
     # ggcnn = get_network(args.network)
     net = get_graspnet()                       #   ggcnn(input_channels=input_channels)
     device = torch.device("cuda:0")
@@ -301,10 +312,10 @@ def run():
         logging.info('Beginning Epoch {:02d}'.format(epoch))
         train_results = train(epoch, net, device, train_data, optimizer, opt.batches_per_epoch, vis=opt.vis)
 
-        # # Log training losses to tensorboard
-        # tb.add_scalar('loss/train_loss', train_results['loss'], epoch)
-        # for n, l in train_results['losses'].items():
-        #     tb.add_scalar('train_loss/' + n, l, epoch)
+        # Log training losses to tensorboard
+        tb.add_scalar('loss/train_loss', train_results['loss'], epoch)
+        for n, l in train_results['losses'].items():
+            tb.add_scalar('train_loss/' + n, l, epoch)
 
         # # Run Validation
         # logging.info('Validating...')

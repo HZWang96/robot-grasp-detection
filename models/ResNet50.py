@@ -29,7 +29,39 @@ class GraspNet(nn.Module):
 
     def forward(self, input):
         output = self.model(input)
-        return output
+        return output[0][0], output[0][1], output[0][2], output[0][3], output[0][4]
+
+    def compute_loss(self, xc, yc):
+        # print(yc)
+        x, y, theta, length, width = yc[0][0]       #第一个0是指第一个tensor, 第二个0是指tensor中的第一行
+        x_pred, y_pred, theta_pred, length_pred, width_pred = self(xc)
+
+        x_loss = F.mse_loss(x_pred, x)
+        y_loss = F.mse_loss(y_pred, y)
+        theta_loss = F.mse_loss(theta_pred, theta)
+        length_loss = F.mse_loss(length_pred, length)
+        width_loss = F.mse_loss(width_pred, width)
+        gamma = torch.tensor(10.)
+        # print(theta_loss.type())
+
+        return {
+            'loss': x_loss + y_loss + gamma*theta_loss + length_loss + width_loss,
+            'losses': {
+                'x_loss': x_loss,
+                'y_loss': y_loss,
+                'theta_loss': theta_loss,
+                'length_loss': length_loss,
+                'width_loss': width_loss
+            },
+            'pred': {
+                'x': x_pred,
+                'y': y_pred,
+                'theta': theta_pred,
+                'length': length_pred,
+                'width': width_pred
+            }
+        }
+
 
 # Model initialization
 def initNetParams(layers):

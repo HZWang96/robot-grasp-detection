@@ -93,7 +93,7 @@ class GraspRectangles:
         # print("Load from cornell files: ")
         # for i in range(len(grs)):
         #     print(grs[i])
-        return cls(grs)                              #保证输出的class是GraspRectangle
+        return cls(grs)                              #保证输出的class是GraspRectangles
 
     @classmethod
     def load_from_jacquard_file(cls, fname, scale=1.0):
