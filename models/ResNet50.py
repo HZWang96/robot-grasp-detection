@@ -43,8 +43,8 @@ class GraspNet(nn.Module):
         width_loss = F.mse_loss(width_pred, width)
         gamma = torch.tensor(10.)
         # print(theta_loss.type())
-        print("x_pred:",x_pred, "y_pred:",y_pred, "theta_pred:",theta_pred, "length_pred:",length_pred, "width_pred:",width_pred)
-        print("x:",x, "y:",y, "theta:",theta, "length:",length, "width:",width)
+        # print("x_pred:",x_pred, "y_pred:",y_pred, "theta_pred:",theta_pred, "length_pred:",length_pred, "width_pred:",width_pred)
+        # print("x:",x, "y:",y, "theta:",theta, "length:",length, "width:",width)
         return {
             'loss': x_loss + y_loss + gamma*theta_loss + length_loss + width_loss,
             'losses': {
