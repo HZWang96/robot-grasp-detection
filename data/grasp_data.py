@@ -3,6 +3,7 @@ import torch
 import torch.utils.data
 import random
 from data import grasp
+from opts import opts
 
 from data.grasp import GraspRectangle
 
@@ -114,3 +115,29 @@ class GraspDatasetBase(torch.utils.data.Dataset):
 
     def __len__(self):
         return len(self.grasp_files)
+
+
+    def collate_fn(self, batch):
+        """
+        Since each image may have a different number of objects, we need a collate function (to be passed to the DataLoader).
+        This describes how to combine these tensors of different sizes. We use lists.
+        Note: this need not be defined in this Class, can be standalone.
+        :param batch: an iterable of N sets from __getitem__()
+        :return: a tensor of images, lists of varying-size tensors of bounding boxes, labels, and difficulties
+        """
+        rgb_img = list()
+        grasp_labels = list()
+        # labels = list()
+        # difficulties = list()
+        
+        for b in batch:
+            rgb_img.append(b[0])
+            grasp_labels.append(b[1])
+        #     # images.append(b[0])
+        #     # boxes.append(b[1])
+        #     # labels.append(b[2])
+        #     # difficulties.append(b[3])
+
+        rgb_img = torch.stack(rgb_img, dim=0)
+
+        return rgb_img, grasp_labels                # tensor (N, 3, 300, 300), 3 lists of N tensors each

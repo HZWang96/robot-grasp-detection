@@ -155,7 +155,7 @@ def train(epoch, net, device, train_data, optimizer, batches_per_epoch, vis=Fals
         batch_idx += 1
 
         train_img = rgb_img.to(device)
-        gt = [grasp_label.float().to(device) for grasp_label in grasp_labels]
+        gt = [torch.from_numpy(grasp_label).float().to(device) for grasp_label in grasp_labels]
         lossd = net.compute_loss(train_img, gt)
 
         loss = lossd['loss']
@@ -275,6 +275,7 @@ def run():
         train_dataset,
         batch_size=opt.batch_size,
         shuffle=True,
+        collate_fn=train_dataset.collate_fn,
         num_workers=opt.num_workers
     )
     val_dataset = Dataset(opt.dataset_path, start=opt.split, end=1.0, ds_rotate=opt.ds_rotate,
@@ -284,6 +285,7 @@ def run():
         val_dataset,
         batch_size=1,
         shuffle=False,
+        # collate_fn=val_dataset.collate_fn,
         num_workers=opt.num_workers
     )
     logging.info('Done')
