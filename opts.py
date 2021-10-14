@@ -41,7 +41,7 @@ class opts(object):
                             help='Shift the start point of the dataset to use a different test/train split for cross validation.')
         self.parser.add_argument('--num-workers', type=int, default=8, help='Dataset workers')
 
-        self.parser.add_argument('--batch-size', type=int, default=10, help='Batch size')
+        self.parser.add_argument('--batch-size', type=int, default=8, help='Batch size')
         self.parser.add_argument('--epochs', type=int, default=50, help='Training epochs')
         self.parser.add_argument('--batches-per-epoch', type=int, default=1000, help='Batches per Epoch')
         self.parser.add_argument('--val-batches', type=int, default=250, help='Validation Batches')
