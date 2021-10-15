@@ -248,7 +248,7 @@ class GraspRectangle:
     def polygon_coords(self, shape=None):
         """
         :param shape: Output Shape
-        :return: Indices of pixels within the grasp rectangle polygon.
+        :return: Indices of pixels within the grasp rectangle polygon. 将bbx的边缘描出来
         """
         return polygon(self.points[:, 0], self.points[:, 1], shape)
 
@@ -269,10 +269,10 @@ class GraspRectangle:
         if abs((self.angle - gr.angle + np.pi/2) % np.pi - np.pi/2) > angle_threshold:
             return 0
 
-        rr1, cc1 = self.polygon_coords()
-        rr2, cc2 = polygon(gr.points[:, 0], gr.points[:, 1])
+        rr1, cc1 = self.polygon_coords() # 画出网络预测bbx的边框
+        rr2, cc2 = polygon(gr.points[:, 0], gr.points[:, 1])  #连线画出预测的bbx
 
-        try:
+        try:        #计算iou
             r_max = max(rr1.max(), rr2.max()) + 1
             c_max = max(cc1.max(), cc2.max()) + 1
         except:
@@ -284,7 +284,7 @@ class GraspRectangle:
         union = np.sum(canvas > 0)
         if union == 0:
             return 0
-        intersection = np.sum(canvas == 2)
+        intersection = np.sum(canvas == 2)  #算出bbx的并集
         return intersection/union
 
     def copy(self):

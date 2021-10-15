@@ -23,6 +23,7 @@ from models.ResNet50 import get_graspnet
 
 logging.basicConfig(level=logging.INFO)
 
+
 def validate(net, device, val_data, batches_per_epoch):
     """
     Run validation.
@@ -47,37 +48,62 @@ def validate(net, device, val_data, batches_per_epoch):
 
     with torch.no_grad():
         batch_idx = 0
-        while batch_idx < batches_per_epoch:
-            for x, y, didx, rot, zoom_factor in val_data:
-                batch_idx += 1
-                if batches_per_epoch is not None and batch_idx >= batches_per_epoch:
-                    break
+        # while batch_idx < batches_per_epoch:
+        for rgb_img, grasp_labels in val_data:
+            batch_idx += 1
+            val_img = rgb_img.to(device)
+            gt = [torch.from_numpy(grasp_label).float().to(device) for grasp_label in grasp_labels]
+            lossd = net.compute_loss(val_img, gt)
 
-                xc = x.to(device)
-                yc = [yy.to(device) for yy in y]
-                lossd = net.compute_loss(xc, yc)
+            loss = lossd['loss']
 
-                loss = lossd['loss']
+            # logging.info('Epoch: {}, Batch: {}, Loss: {:0.4f}'.format(epoch, batch_idx, loss.item()))
 
-                results['loss'] += loss.item()/ld
-                for ln, l in lossd['losses'].items():
-                    if ln not in results['losses']:
-                        results['losses'][ln] = 0
-                    results['losses'][ln] += l.item()/ld
+            results['loss'] += loss.item()
+            for ln, l in lossd['losses'].items():
+                if ln not in results['losses']:
+                    results['losses'][ln] = 0
+                results['losses'][ln] += l.item()
 
-                q_out, ang_out, w_out = post_process_output(lossd['pred']['pos'], lossd['pred']['cos'],
+        #     optimizer.zero_grad()
+        #     loss.backward()
+        #     optimizer.step()
+
+        # results['loss'] /= batch_idx
+        # for l in results['losses']:
+        #     results['losses'][l] /= batch_idx
+                    
+
+            # for x, y, didx, rot, zoom_factor in val_data:
+            #     batch_idx += 1
+            #     if batches_per_epoch is not None and batch_idx >= batches_per_epoch:
+            #         break
+
+                # xc = x.to(device)
+                # yc = [yy.to(device) for yy in y]
+                # lossd = net.compute_loss(xc, yc)
+
+                # loss = lossd['loss']
+
+                # results['loss'] += loss.item()/ld
+                # for ln, l in lossd['losses'].items():
+                #     if ln not in results['losses']:
+                #         results['losses'][ln] = 0
+                #     results['losses'][ln] += l.item()/ld
+
+            q_out, ang_out, w_out = post_process_output(lossd['pred']['pos'], lossd['pred']['cos'],
                                                             lossd['pred']['sin'], lossd['pred']['width'])
 
-                s = evaluation.calculate_iou_match(q_out, ang_out,
-                                                   val_data.dataset.get_gtbb(didx, rot, zoom_factor),
-                                                   no_grasps=1,
-                                                   grasp_width=w_out,
-                                                   )
+            s = evaluation.calculate_iou_match(q_out, ang_out,
+                                                val_data.dataset.get_gtbb(didx, rot, zoom_factor),
+                                                no_grasps=1,
+                                                grasp_width=w_out,
+                                                )
 
-                if s:
-                    results['correct'] += 1
-                else:
-                    results['failed'] += 1
+            if s:
+                results['correct'] += 1
+            else:
+                results['failed'] += 1
 
     return results
 
@@ -140,6 +166,7 @@ def train(epoch, net, device, train_data, optimizer, batches_per_epoch, vis=Fals
     :param vis:  Visualise training progress
     :return:  Average Losses for Epoch
     """
+    opt = opts().init()
     results = {
         'loss': 0,
         'losses': {
@@ -154,8 +181,12 @@ def train(epoch, net, device, train_data, optimizer, batches_per_epoch, vis=Fals
     for rgb_img, grasp_labels in train_data:
         batch_idx += 1
 
-        train_img = rgb_img.to(device)
+        train_img = rgb_img.to(device)              #每次取batch_size张的图片和对应数量的bbx
+        print(train_img)
+        print(grasp_labels)
         gt = [torch.from_numpy(grasp_label).float().to(device) for grasp_label in grasp_labels]
+
+        # for i in range(opt.batch_size):
         lossd = net.compute_loss(train_img, gt)
 
         loss = lossd['loss']
@@ -169,8 +200,6 @@ def train(epoch, net, device, train_data, optimizer, batches_per_epoch, vis=Fals
             results['losses'][ln] += l.item()
 
         optimizer.zero_grad()
-        # loss = loss.float()
-        # print(loss.type())
         loss.backward()
         optimizer.step()
 
@@ -285,7 +314,7 @@ def run():
         val_dataset,
         batch_size=1,
         shuffle=False,
-        # collate_fn=val_dataset.collate_fn,
+        collate_fn=val_dataset.collate_fn,
         num_workers=opt.num_workers
     )
     logging.info('Done')
@@ -295,7 +324,7 @@ def run():
     input_channels = 3*opt.use_rgb             #  1*args.use_depth + 3*args.use_rgb
     # ggcnn = get_network(args.network)
     net = get_graspnet()                       #   ggcnn(input_channels=input_channels)
-    device = torch.device("cuda:0")
+    device = torch.device("cuda:"+str(opt.which_gpu) if torch.cuda.is_available() else "cpu")
     net = net.to(device)
     optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, net.parameters()))
     logging.info('Done')

@@ -48,7 +48,7 @@ def plot_output(rgb_img, depth_img, grasp_q_img, grasp_angle_img, no_grasps=1, g
 
 def calculate_iou_match(grasp_q, grasp_angle, ground_truth_bbs, no_grasps=1, grasp_width=None):
     """
-    Calculate grasp success using the IoU (Jacquard) metric (e.g. in https://arxiv.org/abs/1301.3592)
+    Calculate grasp success using the IoU (Jacquard) metric (e.g. in https://arxiv.org/abs/1301.3592)       #center, angle, 
     A success is counted if grasp rectangle has a 25% IoU with a ground truth, and is withing 30 degrees.
     :param grasp_q: Q outputs of GG-CNN (Nx300x300x3)
     :param grasp_angle: Angle outputs of GG-CNN
@@ -59,7 +59,7 @@ def calculate_iou_match(grasp_q, grasp_angle, ground_truth_bbs, no_grasps=1, gra
     """
 
     if not isinstance(ground_truth_bbs, GraspRectangles):
-        gt_bbs = GraspRectangles.load_from_array(ground_truth_bbs)
+        gt_bbs = GraspRectangles.load_from_array(ground_truth_bbs)                                          #读入bbx的四个角的坐标
     else:
         gt_bbs = ground_truth_bbs
     gs = detect_grasps(grasp_q, grasp_angle, width_img=grasp_width, no_grasps=no_grasps)

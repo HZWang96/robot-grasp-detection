@@ -30,6 +30,7 @@ class opts(object):
         # Copy from GG-CNN Code
         # Network
         self.parser.add_argument('--network', type=str, default='ggcnn', help='Network Name in .models')
+        self.parser.add_argument('--which-gpu', type=int, default=1, help='Choose which gpu for training/validation')
 
         # Dataset & Data & Training
         self.parser.add_argument('--dataset', type=str, help='Dataset Name ("cornell" or "jaquard")')
@@ -38,10 +39,10 @@ class opts(object):
         self.parser.add_argument('--use-rgb', type=int, default=1, help='Use RGB image for training (0/1)')
         self.parser.add_argument('--split', type=float, default=0.9, help='Fraction of data for training (remainder is validation)')
         self.parser.add_argument('--ds-rotate', type=float, default=0.0,
-                            help='Shift the start point of the dataset to use a different test/train split for cross validation.')
-        self.parser.add_argument('--num-workers', type=int, default=8, help='Dataset workers')
+                            help='Shift the start point of the dataset to use a different test/train split for cross validation')
+        self.parser.add_argument('--num-workers', type=int, default=1, help='Dataset workers')
 
-        self.parser.add_argument('--batch-size', type=int, default=8, help='Batch size')
+        self.parser.add_argument('--batch-size', type=int, default=2, help='Batch size')
         self.parser.add_argument('--epochs', type=int, default=50, help='Training epochs')
         self.parser.add_argument('--batches-per-epoch', type=int, default=1000, help='Batches per Epoch')
         self.parser.add_argument('--val-batches', type=int, default=250, help='Validation Batches')
