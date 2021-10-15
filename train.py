@@ -182,8 +182,8 @@ def train(epoch, net, device, train_data, optimizer, batches_per_epoch, vis=Fals
         batch_idx += 1
 
         train_img = rgb_img.to(device)              #每次取batch_size张的图片和对应数量的bbx
-        print(train_img)
-        print(grasp_labels)
+        # print(train_img)
+        # print(grasp_labels)
         gt = [torch.from_numpy(grasp_label).float().to(device) for grasp_label in grasp_labels]
 
         # for i in range(opt.batch_size):

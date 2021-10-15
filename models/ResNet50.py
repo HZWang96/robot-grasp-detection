@@ -39,18 +39,25 @@ class GraspNet(nn.Module):
 
     def compute_loss(self, xc, yc):
         loss_sum = 0.0
-        pred = []
-        Loss_Sum = []
+        loss_smallest_sum = 0.0
+        X_loss_sum = 0.0
+        Y_loss_sum = 0.0
+        Theta_loss_sum = 0.0
+        Length_loss_sum = 0.0
+        Width_loss_sum = 0.0
+        # pred = []
         opt = opts().init()
         # print(yc)
         # print(np.shape(yc))
         # print(np.shape(yc[0]))
         # print(np.shape(yc[0])[0])
-        for i in range(opt.batch_size)
+        print(self(xc))
+        for i in range(opt.batch_size):
+            x_pred, y_pred, theta_pred, length_pred, width_pred = self(xc[i])   #不能放在第二个for循环里面
+            Loss_Sum = []
+            # pred.append((x_pred, y_pred, theta_pred, length_pred, width_pred))
             for z in range(np.shape(yc[i])[0]):
-                x, y, theta, length, width = yc[z]       # z是指tensor中的第z行
-                x_pred, y_pred, theta_pred, length_pred, width_pred = self(xc)
-                pred.append((x_pred, y_pred, theta_pred, length_pred, width_pred))
+                x, y, theta, length, width = yc[i][z]      #第一个i是指第一个tensor, 第二个z是指tensor中的第z行
 
                 x_loss = F.mse_loss(x_pred, x)
                 y_loss = F.mse_loss(y_pred, y)
@@ -65,18 +72,26 @@ class GraspNet(nn.Module):
             # Loss_Sum = Loss_Sum.tolist()
             loss_smallest = min(Loss_Sum)
             idx = Loss_Sum.index(min(Loss_Sum))
-            x1, y1, theta1, length1, width1 = yc[idx]
-            X_pred = pred[idx][0]                           #Careful Dropout!!!
-            Y_pred = pred[idx][1]
-            Theta_pred = pred[idx][2]
-            Length_pred = pred[idx][3]
-            Width_pred = pred[idx][4]
+            x1, y1, theta1, length1, width1 = yc[i][idx]
+            # X_pred = pred[idx][0]                           #Careful Dropout!!!
+            # Y_pred = pred[idx][1]
+            # Theta_pred = pred[idx][2]
+            # Length_pred = pred[idx][3]
+            # Width_pred = pred[idx][4]
 
-            X_loss = F.mse_loss(X_pred, x1)
-            Y_loss = F.mse_loss(Y_pred, y1)
-            Theta_loss = F.mse_loss(Theta_pred, theta1)
-            Length_loss = F.mse_loss(Length_pred, length1)
-            Width_loss = F.mse_loss(Width_pred, width1)
+            X_loss = F.mse_loss(x_pred, x1)
+            Y_loss = F.mse_loss(y_pred, y1)
+            Theta_loss = F.mse_loss(theta_pred, theta1)
+            Length_loss = F.mse_loss(length_pred, length1)
+            Width_loss = F.mse_loss(width_pred, width1)
+        
+            loss_smallest_sum += loss_smallest
+            X_loss_sum += X_loss
+            Y_loss_sum += Y_loss
+            Theta_loss_sum += Theta_loss
+            Length_loss_sum += Length_loss
+            Width_loss_sum += Width_loss
+
 
             # if z=0:
             #     loss_sum2 = loss_sum1
@@ -100,20 +115,20 @@ class GraspNet(nn.Module):
         # print("x:",x, "y:",y, "theta:",theta, "length:",length, "width:",width)
 
         return {
-            'loss': loss_smallest,                                                      #x_loss + y_loss + gamma*theta_loss + length_loss + width_loss,
+            'loss': loss_smallest_sum,                                                      #x_loss + y_loss + gamma*theta_loss + length_loss + width_loss,
             'losses': {
-                'x_loss': X_loss,
-                'y_loss': Y_loss,
-                'theta_loss': Theta_loss,
-                'length_loss': Length_loss,
-                'width_loss': Width_loss
+                'x_loss': X_loss_sum,
+                'y_loss': Y_loss_sum,
+                'theta_loss': Theta_loss_sum,
+                'length_loss': Length_loss_sum,
+                'width_loss': Width_loss_sum
             },
             'pred': {
-                'x': X_pred,
-                'y': Y_pred,
-                'theta': Theta_pred,
-                'length': Length_pred,
-                'width': Width_pred
+                'x': x_pred,
+                'y': y_pred,
+                'theta': theta_pred,
+                'length': length_pred,
+                'width': width_pred
             }
         }
 
