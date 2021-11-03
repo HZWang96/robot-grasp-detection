@@ -26,16 +26,19 @@ class GraspNet(nn.Module):
         nn.Linear(2048, 1024),
         nn.ReLU(inplace=True),
         nn.Dropout(p=0.2),
-        nn.Linear(1024, 1024).to(device), nn.ReLU(inplace=True),
+        nn.Linear(1024, 512).to(device), nn.ReLU(inplace=True),
         nn.Dropout(p=0.2),
-        nn.Linear(1024, 5))
+        nn.Linear(512, 5))
 
     def forward(self, input):
         opt = opts().init()
         device = torch.device("cuda:"+str(opt.which_gpu) if torch.cuda.is_available() else "cpu")
         input = input.to(device)
         output = self.model(input)
-        return output[0][0], output[0][1], output[0][2], output[0][3], output[0][4]
+        # print("Printing output from ResNet50:")
+        # print(output)
+        # return output[0][0], output[0][1], output[0][2], output[0][3], output[0][4]
+        return output
 
     def compute_loss(self, xc, yc):
         loss_sum = 0.0
@@ -45,15 +48,27 @@ class GraspNet(nn.Module):
         Theta_loss_sum = 0.0
         Length_loss_sum = 0.0
         Width_loss_sum = 0.0
+        loss_smallest_avg = 0.0
+        X_loss_avg = 0.0
+        Y_loss_avg = 0.0
+        Theta_loss_avg = 0.0
+        Length_loss_avg = 0.0
+        Width_loss_avg = 0.0
+
         # pred = []
         opt = opts().init()
         # print(yc)
         # print(np.shape(yc))
         # print(np.shape(yc[0]))
         # print(np.shape(yc[0])[0])
-        print(self(xc))
-        for i in range(opt.batch_size):
-            x_pred, y_pred, theta_pred, length_pred, width_pred = self(xc[i])   #不能放在第二个for循环里面
+        # print(xc.shape)
+        # print(self(xc[1].unsqueeze(0)))
+        # print("Printing output from ResNet50:")
+        # print(self(xc))
+        output1 = self(xc) # output from ResNet50
+        for i in range(np.shape(output1)[0]):
+            # x_pred, y_pred, theta_pred, length_pred, width_pred = self(xc[i].unsqueeze(0))   #不能放在第二个for循环里面
+            x_pred, y_pred, theta_pred, length_pred, width_pred = output1[i]
             Loss_Sum = []
             # pred.append((x_pred, y_pred, theta_pred, length_pred, width_pred))
             for z in range(np.shape(yc[i])[0]):
@@ -92,6 +107,13 @@ class GraspNet(nn.Module):
             Length_loss_sum += Length_loss
             Width_loss_sum += Width_loss
 
+        loss_smallest_avg = loss_smallest_sum/opt.batch_size
+        X_loss_avg = X_loss_sum/opt.batch_size
+        Y_loss_avg = Y_loss_sum/opt.batch_size
+        Theta_loss_avg = Theta_loss_sum/opt.batch_size
+        Length_loss_avg = Length_loss_sum/opt.batch_size
+        Width_loss_avg = Width_loss_sum/opt.batch_size
+
 
             # if z=0:
             #     loss_sum2 = loss_sum1
@@ -115,13 +137,13 @@ class GraspNet(nn.Module):
         # print("x:",x, "y:",y, "theta:",theta, "length:",length, "width:",width)
 
         return {
-            'loss': loss_smallest_sum,                                                      #x_loss + y_loss + gamma*theta_loss + length_loss + width_loss,
+            'loss': loss_smallest_avg,                                                      #x_loss + y_loss + gamma*theta_loss + length_loss + width_loss,
             'losses': {
-                'x_loss': X_loss_sum,
-                'y_loss': Y_loss_sum,
-                'theta_loss': Theta_loss_sum,
-                'length_loss': Length_loss_sum,
-                'width_loss': Width_loss_sum
+                'x_loss': X_loss_avg,
+                'y_loss': Y_loss_avg,
+                'theta_loss': Theta_loss_avg,
+                'length_loss': Length_loss_avg,
+                'width_loss': Width_loss_avg
             },
             'pred': {
                 'x': x_pred,

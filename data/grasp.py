@@ -83,7 +83,6 @@ class GraspRectangles:
                     ])
 
                     grs.append(GraspRectangle(gr))
-
                 except ValueError:
                     # Some files contain weird values.
                     continue

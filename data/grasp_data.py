@@ -5,7 +5,7 @@ import random
 from data import grasp
 from opts import opts
 
-from data.grasp import GraspRectangle
+from data.grasp import GraspRectangle, GraspRectangles
 
 
 class GraspDatasetBase(torch.utils.data.Dataset):
@@ -76,6 +76,7 @@ class GraspDatasetBase(torch.utils.data.Dataset):
         bbs = bbs.to_array()
         for i in range(bbs.shape[0]):
             grasp_labels.append([GraspRectangle(bbs[i]).center[1], GraspRectangle(bbs[i]).center[0], GraspRectangle(bbs[i]).angle, GraspRectangle(bbs[i]).width, GraspRectangle(bbs[i]).length])
+
         # pos_img, ang_img, width_img = bbs.draw((self.output_size, self.output_size))
         
         # width_img = np.clip(width_img, 0.0, 150.0)/150.0
