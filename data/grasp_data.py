@@ -2,10 +2,10 @@ import numpy as np
 import torch
 import torch.utils.data
 import random
-from data import grasp
+from dataset_processing import grasp
 from opts import opts
 
-from data.grasp import GraspRectangle, GraspRectangles
+from dataset_processing.grasp import GraspRectangle, GraspRectangles
 
 
 class GraspDatasetBase(torch.utils.data.Dataset):
@@ -83,10 +83,8 @@ class GraspDatasetBase(torch.utils.data.Dataset):
 
         if self.include_depth and self.include_rgb:
             x = self.numpy_to_torch(
-                np.concatenate(
-                    (np.expand_dims(depth_img, 0),
-                     rgb_img),
-                    0# if self.include_depth and self.include_rgb:
+                np.concatenate((np.expand_dims(depth_img, 0), rgb_img),0))
+                    # if self.include_depth and self.include_rgb:
         #     x = self.numpy_to_torch(
         #         np.concatenate(
         #             (np.expand_dims(depth_img, 0),
@@ -99,8 +97,7 @@ class GraspDatasetBase(torch.utils.data.Dataset):
         # elif self.include_rgb:
         #     x = self.numpy_to_torch(rgb_img)
 
-                )
-            )
+
         elif self.include_depth:
             x = self.numpy_to_torch(depth_img)
         elif self.include_rgb:

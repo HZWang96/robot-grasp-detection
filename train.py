@@ -18,9 +18,9 @@ from data import get_dataset
 import torch.optim as optim
 from torchsummary import summary
 from models.common import post_process_output
-from dataset_processing import evaluation, grasp
+from dataset_processing import evaluation #, grasp
 from models.ResNet50 import get_graspnet
-from dataset_processing.grasp import GraspRectangles, detect_grasps, GraspRectangle, _gr_text_to_no
+# from dataset_processing.grasp import GraspRectangles, detect_grasps, GraspRectangle, _gr_text_to_no
 
 
 logging.basicConfig(level=logging.INFO)

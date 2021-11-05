@@ -438,3 +438,25 @@ def detect_grasps(q_img, ang_img, width_img=None, no_grasps=1):
         grasps.append(g)
 
     return grasps
+
+def Grasps2GraspRectangles(self):
+        """
+        Convert Grasps to GraspRectangle
+        :return: GraspRectangle representation of grasp.
+        """
+        xo = np.cos(self[2])
+        yo = np.sin(self[2])
+
+        y1 = self[1] + self[3] / 2 * yo
+        x1 = self[0] - self[3] / 2 * xo
+        y2 = self[1] - self[3] / 2 * yo
+        x2 = self[0] + self[3] / 2 * xo
+
+        return GraspRectangle(np.array(
+            [
+             [y1 - self[4]/2 * xo, x1 - self[4]/2 * yo],
+             [y2 - self[4]/2 * xo, x2 - self[4]/2 * yo],
+             [y2 + self[4]/2 * xo, x2 + self[4]/2 * yo],
+             [y1 + self[4]/2 * xo, x1 + self[4]/2 * yo],
+             ]
+        ).astype(np.float))

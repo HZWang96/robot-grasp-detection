@@ -58,12 +58,12 @@ def calculate_iou_match(val_pred, ground_truth_bbs, no_grasps=1, grasp_width=Non
     :return: success
     """
 
-    if not isinstance(ground_truth_bbs, GraspRectangles):
-        gt_bbs = GraspRectangles.load_from_array(ground_truth_bbs)                                          #读入bbx的四个角的坐标
-    else:
-        gt_bbs = ground_truth_bbs
+    # if not isinstance(ground_truth_bbs, GraspRectangles):
+    #     gt_bbs = GraspRectangles.load_from_array(ground_truth_bbs)                                          #读入bbx的四个角的坐标
+    # else:
+    #     gt_bbs = ground_truth_bbs
     # gs = detect_grasps(grasp_q, grasp_angle, width_img=grasp_width, no_grasps=no_grasps)
-    gs = GraspRectangle(val_pred)
+    gs = val_pred.Grasps2GraspRectangles
     for g in gs:
         if g.max_iou(gt_bbs) > 0.25:
             return True
