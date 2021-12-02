@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from .grasp import GraspRectangles, detect_grasps, GraspRectangle
+from dataset_processing.grasp import GraspRectangles, detect_grasps, GraspRectangle, Grasps2GraspRectangles
 
 
 def plot_output(rgb_img, depth_img, grasp_q_img, grasp_angle_img, no_grasps=1, grasp_width_img=None):
@@ -63,9 +63,10 @@ def calculate_iou_match(val_pred, ground_truth_bbs, no_grasps=1, grasp_width=Non
     # else:
     #     gt_bbs = ground_truth_bbs
     # gs = detect_grasps(grasp_q, grasp_angle, width_img=grasp_width, no_grasps=no_grasps)
-    gs = val_pred.Grasps2GraspRectangles
-    for g in gs:
-        if g.max_iou(gt_bbs) > 0.25:
-            return True
+
+    gs = Grasps2GraspRectangles(val_pred)
+
+    if gs.max_iou(gt_bbs) > 0.25:
+        return True
     else:
         return False

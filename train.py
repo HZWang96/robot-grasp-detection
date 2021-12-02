@@ -54,23 +54,29 @@ def validate(net, device, val_data, batches_per_epoch):
     with torch.no_grad():
         batch_idx = 0
         # while batch_idx < batches_per_epoch:
-        for rgb_img, grasp_labels in val_data:
+        for rgb_img, grasp_labels, didx, rot, zoom_factor in val_data:
             batch_idx += 1
             val_img = rgb_img.to(device)
             gt = [torch.from_numpy(grasp_label).float().to(device) for grasp_label in grasp_labels]
+
             lossd = net.compute_loss(val_img, gt)
 
-            # loss = lossd['loss']
+            loss = lossd['loss']
 
             # logging.info('Epoch: {}, Batch: {}, Loss: {:0.4f}'.format(epoch, batch_idx, loss.item()))
 
-            # results['loss'] += loss.item()
+            # results['loss'] += loss.item()/ld
             # for ln, l in lossd['losses'].items():
             #     if ln not in results['losses']:
             #         results['losses'][ln] = 0
-            #     results['losses'][ln] += l.item()
-
-            val_pred = lossd['pred']
+            #     results['losses'][ln] += l.item()/ld
+            
+            # print(type(gt[0]))
+            Val_pred = lossd['pred']
+            val_pred = list(Val_pred.values())
+            # print(val_pred)
+            # print(type(val_pred))
+            # print(val_pred)
         #     optimizer.zero_grad()
         #     loss.backward()
         #     optimizer.step()
@@ -96,8 +102,8 @@ def validate(net, device, val_data, batches_per_epoch):
                 #     if ln not in results['losses']:
                 #         results['losses'][ln] = 0
                 #     results['losses'][ln] += l.item()/ld
-            # q_out, ang_out, w_out = post_process_output(lossd['pred']['pos'], lossd['pred']['cos'],
-            #                                                 lossd['pred']['sin'], lossd['pred']['width'])
+            val_pred, gt = post_process_output(lossd['pred']['x'], lossd['pred']['y'],
+                                                            lossd['pred']['theta'], lossd['pred']['length'], lossd['pred']['width'])
 
             s = evaluation.calculate_iou_match(val_pred, gt, no_grasps=1)
 

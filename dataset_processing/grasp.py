@@ -388,10 +388,10 @@ class Grasp:
         :param grs: List of GraspRectangles
         :return: Maximum IoU with any of the GraspRectangles
         """
-        self_gr = self.as_gr
+        # self_gr = self.as_gr
         max_iou = 0
         for gr in grs:
-            iou = self_gr.iou(gr)
+            iou = self.iou(gr)
             max_iou = max(max_iou, iou)
         return max_iou
 
@@ -439,24 +439,24 @@ def detect_grasps(q_img, ang_img, width_img=None, no_grasps=1):
 
     return grasps
 
-def Grasps2GraspRectangles(self):
+def Grasps2GraspRectangles(Grs):
         """
         Convert Grasps to GraspRectangle
         :return: GraspRectangle representation of grasp.
         """
-        xo = np.cos(self[2])
-        yo = np.sin(self[2])
+        xo = np.cos(Grs[2])
+        yo = np.sin(Grs[2])
 
-        y1 = self[1] + self[3] / 2 * yo
-        x1 = self[0] - self[3] / 2 * xo
-        y2 = self[1] - self[3] / 2 * yo
-        x2 = self[0] + self[3] / 2 * xo
+        y1 = Grs[1] + Grs[3] / 2 * yo
+        x1 = Grs[0] - Grs[3] / 2 * xo
+        y2 = Grs[1] - Grs[3] / 2 * yo
+        x2 = Grs[0] + Grs[3] / 2 * xo
 
         return GraspRectangle(np.array(
             [
-             [y1 - self[4]/2 * xo, x1 - self[4]/2 * yo],
-             [y2 - self[4]/2 * xo, x2 - self[4]/2 * yo],
-             [y2 + self[4]/2 * xo, x2 + self[4]/2 * yo],
-             [y1 + self[4]/2 * xo, x1 + self[4]/2 * yo],
+             [y1 - Grs[4]/2 * xo, x1 - Grs[4]/2 * yo],
+             [y2 - Grs[4]/2 * xo, x2 - Grs[4]/2 * yo],
+             [y2 + Grs[4]/2 * xo, x2 + Grs[4]/2 * yo],
+             [y1 + Grs[4]/2 * xo, x1 + Grs[4]/2 * yo],
              ]
         ).astype(np.float))
