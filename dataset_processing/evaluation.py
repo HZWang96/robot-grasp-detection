@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import torch
 
 from dataset_processing.grasp import GraspRectangles, detect_grasps, GraspRectangle, Grasps2GraspRectangles
 
@@ -64,7 +65,16 @@ def calculate_iou_match(val_pred, ground_truth_bbs, no_grasps=1, grasp_width=Non
     #     gt_bbs = ground_truth_bbs
     # gs = detect_grasps(grasp_q, grasp_angle, width_img=grasp_width, no_grasps=no_grasps)
 
-    gs = Grasps2GraspRectangles(val_pred)
+    gt_bbs = ground_truth_bbs
+    # gs = Grasps2GraspRectangles(val_pred)
+    gs = val_pred
+
+    # gt_bbs = np.array(gt_bbs)
+    # gs = np.array(gs)
+
+    # gt_bbs = torch.from_numpy(gt_bbs)
+    # gs = torch.from_numpy(gs)
+
 
     if gs.max_iou(gt_bbs) > 0.25:
         return True

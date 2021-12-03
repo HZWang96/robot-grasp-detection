@@ -71,11 +71,15 @@ class GraspDatasetBase(torch.utils.data.Dataset):
             rgb_img = self.get_rgb(idx, rot, zoom_factor)
 
         # Load the grasps
-        grasp_labels = []
+        grasp_labels = []                           
+        GRASP_labels = []
+
         bbs = self.get_gtbb(idx, rot, zoom_factor)  # <class 'dataset_processing.grasp.GraspRectangles'>
         bbs = bbs.to_array()
         for i in range(bbs.shape[0]):
             grasp_labels.append([GraspRectangle(bbs[i]).center[1], GraspRectangle(bbs[i]).center[0], GraspRectangle(bbs[i]).angle, GraspRectangle(bbs[i]).length, GraspRectangle(bbs[i]).width])
+            GRASP_labels.append([GraspRectangle(bbs[i]).center, GraspRectangle(bbs[i]).angle, GraspRectangle(bbs[i]).length, GraspRectangle(bbs[i]).width])
+
 
         # pos_img, ang_img, width_img = bbs.draw((self.output_size, self.output_size))
         
@@ -109,7 +113,8 @@ class GraspDatasetBase(torch.utils.data.Dataset):
         # width = self.numpy_to_torch(width_img)
 
         # return x, (pos, cos, sin, width), idx, rot, zoom_factor
-        return x, np.array(grasp_labels), idx, rot, zoom_factor
+        # return x, np.array(grasp_labels), idx, rot, zoom_factor, np.array(GRASP_labels)
+        return x, np.array(grasp_labels), np.array(GRASP_labels)
 
     def __len__(self):
         return len(self.grasp_files)
@@ -125,12 +130,15 @@ class GraspDatasetBase(torch.utils.data.Dataset):
         """
         rgb_img = list()
         grasp_labels = list()
+        GRASP_labels = list()
+
         # labels = list()
         # difficulties = list()
         
         for b in batch:
             rgb_img.append(b[0])
             grasp_labels.append(b[1])
+            GRASP_labels.append(b[2])
         #     # images.append(b[0])
         #     # boxes.append(b[1])
         #     # labels.append(b[2])
@@ -138,4 +146,4 @@ class GraspDatasetBase(torch.utils.data.Dataset):
 
         rgb_img = torch.stack(rgb_img, dim=0)
 
-        return rgb_img, grasp_labels                # tensor (N, 3, 300, 300), 3 lists of N tensors each
+        return rgb_img, grasp_labels, GRASP_labels                # tensor (N, 3, 300, 300), 3 lists of N tensors each

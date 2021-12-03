@@ -54,10 +54,11 @@ def validate(net, device, val_data, batches_per_epoch):
     with torch.no_grad():
         batch_idx = 0
         # while batch_idx < batches_per_epoch:
-        for rgb_img, grasp_labels, didx, rot, zoom_factor in val_data:
+        for rgb_img, grasp_labels, GRASP_labels in val_data:
             batch_idx += 1
             val_img = rgb_img.to(device)
             gt = [torch.from_numpy(grasp_label).float().to(device) for grasp_label in grasp_labels]
+            Gtb = [GRASP_label for GRASP_label in GRASP_labels]
 
             lossd = net.compute_loss(val_img, gt)
 
@@ -72,7 +73,7 @@ def validate(net, device, val_data, batches_per_epoch):
             #     results['losses'][ln] += l.item()/ld
             
             # print(type(gt[0]))
-            Val_pred = lossd['pred']
+            Val_pred = lossd['pred_IOU']
             val_pred = list(Val_pred.values())
             # print(val_pred)
             # print(type(val_pred))
@@ -102,10 +103,10 @@ def validate(net, device, val_data, batches_per_epoch):
                 #     if ln not in results['losses']:
                 #         results['losses'][ln] = 0
                 #     results['losses'][ln] += l.item()/ld
-            val_pred, gt = post_process_output(lossd['pred']['x'], lossd['pred']['y'],
-                                                            lossd['pred']['theta'], lossd['pred']['length'], lossd['pred']['width'])
+            # val_pred, gt = post_process_output(lossd['pred']['x'], lossd['pred']['y'],
+            #                                                 lossd['pred']['theta'], lossd['pred']['length'], lossd['pred']['width'])
 
-            s = evaluation.calculate_iou_match(val_pred, gt, no_grasps=1)
+            s = evaluation.calculate_iou_match(val_pred, Gtb, no_grasps=1)
 
             if s:
                 results['correct'] += 1
@@ -189,7 +190,7 @@ def train(epoch, net, device, train_data, optimizer, batches_per_epoch, vis=Fals
     batch_idx = 0
     # Use batches per epoch to make training on different sized datasets (cornell/jacquard) more equivalent.
     # while batch_idx < batches_per_epoch:
-    for rgb_img, grasp_labels in train_data:
+    for rgb_img, grasp_labels, GRASP_labels in train_data:
         batch_idx += 1
         # print(rgb_img.shape)
         train_img = rgb_img.to(device)              #每次取batch_size张的图片和对应数量的bbx
@@ -362,24 +363,24 @@ def run():
         for n, l in train_results['losses'].items():
             tb.add_scalar('train_loss/' + n, l, epoch)
 
-        # # Run Validation
-        # logging.info('Validating...')
-        # test_results = validate(net, device, val_data, opt.val_batches)
-        # logging.info('%d/%d = %f' % (test_results['correct'], test_results['correct'] + test_results['failed'],
-        #                              test_results['correct']/(test_results['correct']+test_results['failed'])))
+        # Run Validation
+        logging.info('Validating...')
+        test_results = validate(net, device, val_data, opt.val_batches)
+        logging.info('%d/%d = %f' % (test_results['correct'], test_results['correct'] + test_results['failed'],
+                                     test_results['correct']/(test_results['correct']+test_results['failed'])))
 
-        # # Log validation results to tensorbaord
-        # tb.add_scalar('loss/IOU', test_results['correct'] / (test_results['correct'] + test_results['failed']), epoch)
-        # tb.add_scalar('loss/val_loss', test_results['loss'], epoch)
-        # for n, l in test_results['losses'].items():
-        #     tb.add_scalar('val_loss/' + n, l, epoch)
+        # Log validation results to tensorbaord
+        tb.add_scalar('loss/IOU', test_results['correct'] / (test_results['correct'] + test_results['failed']), epoch)
+        tb.add_scalar('loss/val_loss', test_results['loss'], epoch)
+        for n, l in test_results['losses'].items():
+            tb.add_scalar('val_loss/' + n, l, epoch)
 
-        # # Save best performing network
-        # iou = test_results['correct'] / (test_results['correct'] + test_results['failed'])
-        # if iou > best_iou or epoch == 0 or (epoch % 10) == 0:
-        #     torch.save(net, os.path.join(save_folder, 'epoch_%02d_iou_%0.2f' % (epoch, iou)))
-        #     torch.save(net.state_dict(), os.path.join(save_folder, 'epoch_%02d_iou_%0.2f_statedict.pt' % (epoch, iou)))
-        #     best_iou = iou
+        # Save best performing network
+        iou = test_results['correct'] / (test_results['correct'] + test_results['failed'])
+        if iou > best_iou or epoch == 0 or (epoch % 10) == 0:
+            torch.save(net, os.path.join(save_folder, 'epoch_%02d_iou_%0.2f' % (epoch, iou)))
+            torch.save(net.state_dict(), os.path.join(save_folder, 'epoch_%02d_iou_%0.2f_statedict.pt' % (epoch, iou)))
+            best_iou = iou
 
 
 if __name__ == '__main__':

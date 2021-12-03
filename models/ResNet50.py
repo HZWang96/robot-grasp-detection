@@ -151,6 +151,12 @@ class GraspNet(nn.Module):
                 'theta': theta_pred,
                 'length': length_pred,
                 'width': width_pred
+            },
+            'pred_IOU': {
+                'center': (y_pred, x_pred),
+                'theta': theta_pred,
+                'length': length_pred,
+                'width': width_pred
             }
         }
 
