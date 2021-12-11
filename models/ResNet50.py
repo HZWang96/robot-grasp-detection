@@ -74,14 +74,26 @@ class GraspNet(nn.Module):
             for z in range(np.shape(yc[i])[0]):
                 x, y, theta, length, width = yc[i][z]      #第一个i是指第一个tensor, 第二个z是指tensor中的第z行
 
-                x_loss = F.mse_loss(x_pred, x)
-                y_loss = F.mse_loss(y_pred, y)
-                theta_loss = F.mse_loss(theta_pred, theta)
-                length_loss = F.mse_loss(length_pred, length)
-                width_loss = F.mse_loss(width_pred, width)
-                gamma = torch.tensor(10.)
+                # # MSE Loss
+                # x_loss = F.mse_loss(x_pred, x)
+                # y_loss = F.mse_loss(y_pred, y)
+                # theta_loss = F.mse_loss(theta_pred, theta)
+                # length_loss = F.mse_loss(length_pred, length)
+                # width_loss = F.mse_loss(width_pred, width)
 
-                loss_sum = x_loss + y_loss + gamma*theta_loss + length_loss + width_loss
+                #L1 Loss
+                L1loss = nn.L1Loss()
+                x_loss = L1loss(x_pred, x)
+                y_loss = L1loss(y_pred, y)
+                theta_loss = L1loss(theta_pred, theta)
+                length_loss = L1loss(length_pred, length)
+                width_loss = L1loss(width_pred, width)
+
+                gamma = torch.tensor(0.9)                   #对每个参数进行权重的调整
+                alpha = torch.tensor(0.15)
+                beta = torch.tensor(0.15)
+
+                loss_sum = alpha*x_loss + alpha*y_loss + gamma*theta_loss + beta*length_loss + beta*width_loss
                 Loss_Sum.append(loss_sum)
 
             # Loss_Sum = Loss_Sum.tolist()
@@ -94,12 +106,20 @@ class GraspNet(nn.Module):
             # Length_pred = pred[idx][3]
             # Width_pred = pred[idx][4]
 
-            X_loss = F.mse_loss(x_pred, x1)
-            Y_loss = F.mse_loss(y_pred, y1)
-            Theta_loss = F.mse_loss(theta_pred, theta1)
-            Length_loss = F.mse_loss(length_pred, length1)
-            Width_loss = F.mse_loss(width_pred, width1)
+            # # MSE Loss
+            # X_loss = F.mse_loss(x_pred, x1)
+            # Y_loss = F.mse_loss(y_pred, y1)
+            # Theta_loss = F.mse_loss(theta_pred, theta1)
+            # Length_loss = F.mse_loss(length_pred, length1)
+            # Width_loss = F.mse_loss(width_pred, width1)
         
+            # L1 Loss
+            X_loss = L1loss(x_pred, x1)
+            Y_loss = L1loss(y_pred, y1)
+            Theta_loss = L1loss(theta_pred, theta1)
+            Length_loss = L1loss(length_pred, length1)
+            Width_loss = L1loss(width_pred, width1)
+
             loss_smallest_sum += loss_smallest
             X_loss_sum += X_loss
             Y_loss_sum += Y_loss
@@ -148,12 +168,6 @@ class GraspNet(nn.Module):
             'pred': {
                 'x': x_pred,
                 'y': y_pred,
-                'theta': theta_pred,
-                'length': length_pred,
-                'width': width_pred
-            },
-            'pred_IOU': {
-                'center': (y_pred, x_pred),
                 'theta': theta_pred,
                 'length': length_pred,
                 'width': width_pred

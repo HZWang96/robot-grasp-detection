@@ -54,11 +54,12 @@ def validate(net, device, val_data, batches_per_epoch):
     with torch.no_grad():
         batch_idx = 0
         # while batch_idx < batches_per_epoch:
-        for rgb_img, grasp_labels, GRASP_labels in val_data:
+        for rgb_img, grasp_labels in val_data:
             batch_idx += 1
             val_img = rgb_img.to(device)
             gt = [torch.from_numpy(grasp_label).float().to(device) for grasp_label in grasp_labels]
-            Gtb = [GRASP_label for GRASP_label in GRASP_labels]
+            # print('gt:')
+            # print(gt)
 
             lossd = net.compute_loss(val_img, gt)
 
@@ -73,8 +74,19 @@ def validate(net, device, val_data, batches_per_epoch):
             #     results['losses'][ln] += l.item()/ld
             
             # print(type(gt[0]))
-            Val_pred = lossd['pred_IOU']
-            val_pred = list(Val_pred.values())
+            Val_pred = lossd['pred']
+            # print('Val_pred:')
+            # print(Val_pred)
+            val_preds = list(Val_pred.values())
+            # print('val_preds:')
+            # print(val_preds)
+            # val_preds = np.array(val_preds)
+            val_pred_value = [val_pred.float().cpu() for val_pred in val_preds]
+            # val_pred_value = torch.stack(val_pred_value, dim=1)
+            # print('val_pred_value:')
+            # print(val_pred_value)
+            # print(type(val_pred_value))
+
             # print(val_pred)
             # print(type(val_pred))
             # print(val_pred)
@@ -106,7 +118,7 @@ def validate(net, device, val_data, batches_per_epoch):
             # val_pred, gt = post_process_output(lossd['pred']['x'], lossd['pred']['y'],
             #                                                 lossd['pred']['theta'], lossd['pred']['length'], lossd['pred']['width'])
 
-            s = evaluation.calculate_iou_match(val_pred, Gtb, no_grasps=1)
+            s = evaluation.calculate_iou_match(val_pred_value, gt, no_grasps=1)
 
             if s:
                 results['correct'] += 1
@@ -190,7 +202,7 @@ def train(epoch, net, device, train_data, optimizer, batches_per_epoch, vis=Fals
     batch_idx = 0
     # Use batches per epoch to make training on different sized datasets (cornell/jacquard) more equivalent.
     # while batch_idx < batches_per_epoch:
-    for rgb_img, grasp_labels, GRASP_labels in train_data:
+    for rgb_img, grasp_labels in train_data:
         batch_idx += 1
         # print(rgb_img.shape)
         train_img = rgb_img.to(device)              #每次取batch_size张的图片和对应数量的bbx
@@ -342,7 +354,7 @@ def run():
     device = torch.device("cuda:"+str(opt.which_gpu) if torch.cuda.is_available() else "cpu")
     net = net.to(device)
     # optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, net.parameters()), lr=1e-5)
-    optimizer = torch.optim.SGD(filter(lambda p: p.requires_grad, net.parameters()), lr=1e-5, weight_decay=1e-3, momentum=0.9)
+    optimizer = torch.optim.SGD(filter(lambda p: p.requires_grad, net.parameters()), lr=1e-3, weight_decay=1e-3, momentum=0.9)
     logging.info('Done')
 
     # Print model architecture.

@@ -65,16 +65,21 @@ def calculate_iou_match(val_pred, ground_truth_bbs, no_grasps=1, grasp_width=Non
     #     gt_bbs = ground_truth_bbs
     # gs = detect_grasps(grasp_q, grasp_angle, width_img=grasp_width, no_grasps=no_grasps)
 
-    gt_bbs = ground_truth_bbs
-    # gs = Grasps2GraspRectangles(val_pred)
-    gs = val_pred
+    gs = Grasps2GraspRectangles(val_pred)
+    # print('gs:')
+    # print(gs)
+    # print(type(gs))
+    gt_bbs = [ground_truth_bb.cpu() for ground_truth_bb in ground_truth_bbs]
+    # print(gt_bbs)
+    # print(type(gt_bbs))
+    # print(gt_bbs[0])
+    # print(gt_bbs[0][0])
 
     # gt_bbs = np.array(gt_bbs)
     # gs = np.array(gs)
 
     # gt_bbs = torch.from_numpy(gt_bbs)
     # gs = torch.from_numpy(gs)
-
 
     if gs.max_iou(gt_bbs) > 0.25:
         return True

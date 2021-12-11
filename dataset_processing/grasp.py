@@ -287,6 +287,21 @@ class GraspRectangle:
             return 0
         intersection = np.sum(canvas == 2)
         return intersection/union
+    
+    def max_iou(self, grs):
+        """
+        Return maximum IoU between self and a list of GraspRectangles
+        :param grs: List of GraspRectangles
+        :return: Maximum IoU with any of the GraspRectangles
+        """
+        # self_gr = self.as_gr
+        max_iou = 0
+        for gr in grs:
+            for i in range(gr.shape[0]):
+                Gr = Grasps2GraspRectangles(gr[i])
+                iou = self.iou(Gr)
+                max_iou = max(max_iou, iou)
+        return max_iou
 
     def copy(self):
         """
