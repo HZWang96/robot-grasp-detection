@@ -26,7 +26,11 @@ class GraspNet(nn.Module):
         nn.Linear(2048, 1024),
         nn.ReLU(inplace=True),
         nn.Dropout(p=0.2),
-        nn.Linear(1024, 512).to(device), nn.ReLU(inplace=True),
+        # nn.Linear(1024, 5), 
+        # nn.ReLU(inplace=True))
+
+        nn.Linear(1024, 512), 
+        nn.ReLU(inplace=True),
         nn.Dropout(p=0.2),
         nn.Linear(512, 5))
 
@@ -74,24 +78,32 @@ class GraspNet(nn.Module):
             for z in range(np.shape(yc[i])[0]):
                 x, y, theta, length, width = yc[i][z]      #第一个i是指第一个tensor, 第二个z是指tensor中的第z行
 
-                # # MSE Loss
-                # x_loss = F.mse_loss(x_pred, x)
-                # y_loss = F.mse_loss(y_pred, y)
-                # theta_loss = F.mse_loss(theta_pred, theta)
-                # length_loss = F.mse_loss(length_pred, length)
-                # width_loss = F.mse_loss(width_pred, width)
+                # MSE Loss
+                x_loss = F.mse_loss(x_pred, x)
+                y_loss = F.mse_loss(y_pred, y)
+                theta_loss = F.mse_loss(theta_pred, theta)
+                length_loss = F.mse_loss(length_pred, length)
+                width_loss = F.mse_loss(width_pred, width)
 
-                #L1 Loss
-                L1loss = nn.L1Loss()
-                x_loss = L1loss(x_pred, x)
-                y_loss = L1loss(y_pred, y)
-                theta_loss = L1loss(theta_pred, theta)
-                length_loss = L1loss(length_pred, length)
-                width_loss = L1loss(width_pred, width)
+                # #L1 Loss
+                # L1loss = nn.L1Loss()
+                # x_loss = L1loss(x_pred, x)
+                # y_loss = L1loss(y_pred, y)
+                # theta_loss = L1loss(theta_pred, theta)
+                # length_loss = L1loss(length_pred, length)
+                # width_loss = L1loss(width_pred, width)
 
-                gamma = torch.tensor(0.9)                   #对每个参数进行权重的调整
-                alpha = torch.tensor(0.15)
-                beta = torch.tensor(0.15)
+                # # Smooth L1 Loss
+                # Smooth_L1loss = nn.SmoothL1Loss()
+                # x_loss = Smooth_L1loss(x_pred, x)
+                # y_loss = Smooth_L1loss(y_pred, y)
+                # theta_loss = Smooth_L1loss(theta_pred, theta)
+                # length_loss = Smooth_L1loss(length_pred, length)
+                # width_loss = Smooth_L1loss(width_pred, width)
+
+                gamma = torch.tensor(1.0)                   #对每个参数进行权重的调整
+                alpha = torch.tensor(0.1)
+                beta = torch.tensor(0.1)
 
                 loss_sum = alpha*x_loss + alpha*y_loss + gamma*theta_loss + beta*length_loss + beta*width_loss
                 Loss_Sum.append(loss_sum)
@@ -106,19 +118,26 @@ class GraspNet(nn.Module):
             # Length_pred = pred[idx][3]
             # Width_pred = pred[idx][4]
 
-            # # MSE Loss
-            # X_loss = F.mse_loss(x_pred, x1)
-            # Y_loss = F.mse_loss(y_pred, y1)
-            # Theta_loss = F.mse_loss(theta_pred, theta1)
-            # Length_loss = F.mse_loss(length_pred, length1)
-            # Width_loss = F.mse_loss(width_pred, width1)
+            # MSE Loss
+            X_loss = F.mse_loss(x_pred, x1)
+            Y_loss = F.mse_loss(y_pred, y1)
+            Theta_loss = F.mse_loss(theta_pred, theta1)
+            Length_loss = F.mse_loss(length_pred, length1)
+            Width_loss = F.mse_loss(width_pred, width1)
         
-            # L1 Loss
-            X_loss = L1loss(x_pred, x1)
-            Y_loss = L1loss(y_pred, y1)
-            Theta_loss = L1loss(theta_pred, theta1)
-            Length_loss = L1loss(length_pred, length1)
-            Width_loss = L1loss(width_pred, width1)
+            # # L1 Loss
+            # X_loss = L1loss(x_pred, x1)
+            # Y_loss = L1loss(y_pred, y1)
+            # Theta_loss = L1loss(theta_pred, theta1)
+            # Length_loss = L1loss(length_pred, length1)
+            # Width_loss = L1loss(width_pred, width1)
+
+            # # SmoothL1Loss
+            # X_loss = Smooth_L1loss(x_pred, x1)
+            # Y_loss = Smooth_L1loss(y_pred, y1)
+            # Theta_loss = Smooth_L1loss(theta_pred, theta1)
+            # Length_loss = Smooth_L1loss(length_pred, length1)
+            # Width_loss = Smooth_L1loss(width_pred, width1)
 
             loss_smallest_sum += loss_smallest
             X_loss_sum += X_loss

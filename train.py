@@ -354,7 +354,7 @@ def run():
     device = torch.device("cuda:"+str(opt.which_gpu) if torch.cuda.is_available() else "cpu")
     net = net.to(device)
     # optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, net.parameters()), lr=1e-5)
-    optimizer = torch.optim.SGD(filter(lambda p: p.requires_grad, net.parameters()), lr=1e-3, weight_decay=1e-3, momentum=0.9)
+    optimizer = torch.optim.SGD(filter(lambda p: p.requires_grad, net.parameters()), lr=1e-5, weight_decay=1e-3, momentum=0.9)
     logging.info('Done')
 
     # Print model architecture.
