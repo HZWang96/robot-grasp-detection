@@ -17,22 +17,22 @@ class GraspNet(nn.Module):
         device = torch.device("cuda:"+str(opt.which_gpu) if torch.cuda.is_available() else "cpu")
         print(device)
 
-        self.model = models.resnet50(pretrained=True).to(device)
+        self.model = models.resnet34(pretrained=False).to(device)
 
         for param in self.model.parameters():
-            param.requires_grad = False
+            param.requires_grad = True
 
         self.model.fc = nn.Sequential(
-        nn.Linear(2048, 1024),
+        nn.Linear(512, 256),
         nn.ReLU(inplace=True),
         nn.Dropout(p=0.2),
-        # nn.Linear(1024, 5), 
-        # nn.ReLU(inplace=True))
+        nn.Linear(256, 5), 
+        nn.ReLU(inplace=True))
 
-        nn.Linear(1024, 512), 
-        nn.ReLU(inplace=True),
-        nn.Dropout(p=0.2),
-        nn.Linear(512, 5))
+        # nn.Linear(512, 512), 
+        # nn.ReLU(inplace=True),
+        # nn.Dropout(p=0.2),
+        # nn.Linear(512, 5))
 
     def forward(self, input):
         opt = opts().init()

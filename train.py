@@ -52,10 +52,10 @@ def validate(net, device, val_data, batches_per_epoch):
     ld = len(val_data)
 
     with torch.no_grad():
-        batch_idx = 0
+        # batch_idx = 0
         # while batch_idx < batches_per_epoch:
         for rgb_img, grasp_labels in val_data:
-            batch_idx += 1
+            # batch_idx += 1
             val_img = rgb_img.to(device)
             gt = [torch.from_numpy(grasp_label).float().to(device) for grasp_label in grasp_labels]
             # print('gt:')
@@ -353,8 +353,8 @@ def run():
     net = get_graspnet()                       #   ggcnn(input_channels=input_channels)
     device = torch.device("cuda:"+str(opt.which_gpu) if torch.cuda.is_available() else "cpu")
     net = net.to(device)
-    # optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, net.parameters()), lr=1e-5)
-    optimizer = torch.optim.SGD(filter(lambda p: p.requires_grad, net.parameters()), lr=1e-5, weight_decay=1e-3, momentum=0.9)
+    # optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, net.parameters()), lr=opt.lr)
+    optimizer = torch.optim.SGD(filter(lambda p: p.requires_grad, net.parameters()), lr=opt.lr, weight_decay=1e-3, momentum=0.9)
     logging.info('Done')
 
     # Print model architecture.
@@ -368,6 +368,19 @@ def run():
     best_iou = 0.0
     for epoch in range(opt.epochs):
         logging.info('Beginning Epoch {:02d}'.format(epoch))
+
+        # # Warming up the learning rate
+        # if epoch < opt.warm_up:
+        #     lr1 = opt.lr * 0.1
+        #     print('Drop LR to:', lr1)
+        #     for param_group in optimizer.param_groups:
+        #         param_group['lr'] = lr1
+        #     print('LR now in optimizer is:', param_group['lr'])
+        # else:
+        #     for param_group in optimizer.param_groups:
+        #         param_group['lr'] = opt.lr
+        #     print('LR now in optimizer is:', param_group['lr'])
+            
         train_results = train(epoch, net, device, train_data, optimizer, opt.batches_per_epoch, vis=opt.vis)
 
         # Log training losses to tensorboard
