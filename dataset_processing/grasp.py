@@ -1,4 +1,5 @@
 import numpy as np
+import torch
 
 import matplotlib.pyplot as plt
 
@@ -475,3 +476,18 @@ def Grasps2GraspRectangles(Grs):
              [y1 + Grs[4]/2 * xo, x1 + Grs[4]/2 * yo],
              ]
         ).astype(np.float))
+
+def data_normal(orign_data):
+        """
+        Normalize the positive and negative values in the array to [0, 1]
+        :return: The return value is the globally normalized tensor.
+        """
+        d_min = orign_data.min()
+        if d_min < 0:
+            orign_data += torch.abs(d_min)
+            d_min = orign_data.min()
+        d_max = orign_data.max()
+        dst = d_max - d_min
+        norm_data = (orign_data - d_min).true_divide(dst)
+        
+        return norm_data

@@ -26,7 +26,7 @@ from models.ResNet50 import get_graspnet
 logging.basicConfig(level=logging.INFO)
 
 
-def validate(net, device, val_data, batches_per_epoch):
+def validate(epoch, net, device, val_data):
     """
     Run validation.
     :param net: Network
@@ -52,14 +52,15 @@ def validate(net, device, val_data, batches_per_epoch):
     ld = len(val_data)
 
     with torch.no_grad():
-        # batch_idx = 0
+        batch_idx = 0
         # while batch_idx < batches_per_epoch:
         for rgb_img, grasp_labels in val_data:
-            # batch_idx += 1
+            batch_idx += 1
             val_img = rgb_img.to(device)
             gt = [torch.from_numpy(grasp_label).float().to(device) for grasp_label in grasp_labels]
             # print('gt:')
             # print(gt)
+            # print(np.shape(gt[0]))
 
             lossd = net.compute_loss(val_img, gt)
 
@@ -67,11 +68,11 @@ def validate(net, device, val_data, batches_per_epoch):
 
             # logging.info('Epoch: {}, Batch: {}, Loss: {:0.4f}'.format(epoch, batch_idx, loss.item()))
 
-            # results['loss'] += loss.item()/ld
-            # for ln, l in lossd['losses'].items():
-            #     if ln not in results['losses']:
-            #         results['losses'][ln] = 0
-            #     results['losses'][ln] += l.item()/ld
+            results['loss'] += loss.item()/ld
+            for ln, l in lossd['losses'].items():
+                if ln not in results['losses']:
+                    results['losses'][ln] = 0
+                results['losses'][ln] += l.item()/ld
             
             # print(type(gt[0]))
             Val_pred = lossd['pred']
@@ -82,23 +83,21 @@ def validate(net, device, val_data, batches_per_epoch):
             # print(val_preds)
             # val_preds = np.array(val_preds)
             val_pred_value = [val_pred.float().cpu() for val_pred in val_preds]
+            val_pred_value[0] = val_pred_value[0] * 224
+            val_pred_value[1] = val_pred_value[1] * 224
+            val_pred_value[3] = val_pred_value[3] * 100
+            val_pred_value[4] = val_pred_value[4] * 80
+
+            for i in range(np.shape(gt[0])[0]):
+                gt[0][i][0] = gt[0][i][0] * 224
+                gt[0][i][1] = gt[0][i][1] * 224
+                gt[0][i][3] = gt[0][i][3] * 100
+                gt[0][i][4] = gt[0][i][4] * 80
             # val_pred_value = torch.stack(val_pred_value, dim=1)
-            # print('val_pred_value:')
+            # print('val_pred_values:')
             # print(val_pred_value)
             # print(type(val_pred_value))
-
-            # print(val_pred)
-            # print(type(val_pred))
-            # print(val_pred)
-        #     optimizer.zero_grad()
-        #     loss.backward()
-        #     optimizer.step()
-
-        # results['loss'] /= batch_idx
-        # for l in results['losses']:
-        #     results['losses'][l] /= batch_idx
                     
-
             # for x, y, didx, rot, zoom_factor in val_data:
             #     batch_idx += 1
             #     if batches_per_epoch is not None and batch_idx >= batches_per_epoch:
@@ -124,6 +123,10 @@ def validate(net, device, val_data, batches_per_epoch):
                 results['correct'] += 1
             else:
                 results['failed'] += 1
+
+        # results['loss'] /= batch_idx
+        # for l in results['losses']:
+        #     results['losses'][l] /= batch_idx
 
     return results
 
@@ -207,8 +210,12 @@ def train(epoch, net, device, train_data, optimizer, batches_per_epoch, vis=Fals
         # print(rgb_img.shape)
         train_img = rgb_img.to(device)              #每次取batch_size张的图片和对应数量的bbx
         # print(train_img)
-        # print(grasp_labels)
+
+        # for grasp_label in grasp_labels:
+        #     print('max value is:', np.max(grasp_label, axis=0))
+
         gt = [torch.from_numpy(grasp_label).float().to(device) for grasp_label in grasp_labels]
+        # print('gt is:', gt)
 
         # for i in range(opt.batch_size):
         lossd = net.compute_loss(train_img, gt)
@@ -369,17 +376,17 @@ def run():
     for epoch in range(opt.epochs):
         logging.info('Beginning Epoch {:02d}'.format(epoch))
 
-        # # Warming up the learning rate
-        # if epoch < opt.warm_up:
-        #     lr1 = opt.lr * 0.1
-        #     print('Drop LR to:', lr1)
-        #     for param_group in optimizer.param_groups:
-        #         param_group['lr'] = lr1
-        #     print('LR now in optimizer is:', param_group['lr'])
-        # else:
-        #     for param_group in optimizer.param_groups:
-        #         param_group['lr'] = opt.lr
-        #     print('LR now in optimizer is:', param_group['lr'])
+        # Warming up the learning rate
+        if epoch > opt.warm_up:
+            lr1 = opt.lr * 0.1
+            print('Drop LR to:', lr1)
+            for param_group in optimizer.param_groups:
+                param_group['lr'] = lr1
+            print('LR now in optimizer is:', param_group['lr'])
+        else:
+            for param_group in optimizer.param_groups:
+                param_group['lr'] = opt.lr
+            print('LR now in optimizer is:', param_group['lr'])
             
         train_results = train(epoch, net, device, train_data, optimizer, opt.batches_per_epoch, vis=opt.vis)
 
@@ -390,7 +397,7 @@ def run():
 
         # Run Validation
         logging.info('Validating...')
-        test_results = validate(net, device, val_data, opt.val_batches)
+        test_results = validate(epoch, net, device, val_data)
         logging.info('%d/%d = %f' % (test_results['correct'], test_results['correct'] + test_results['failed'],
                                      test_results['correct']/(test_results['correct']+test_results['failed'])))
 

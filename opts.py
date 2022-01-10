@@ -6,7 +6,7 @@ class opts(object):
     def __init__(self):
         self.parser = argparse.ArgumentParser()
 
-        self.parser.add_argument('--lr', type=float, default=1e-4, help='Initial learning rate.')
+        self.parser.add_argument('--lr', type=float, default=1e-3, help='Initial learning rate.')
 
         # parser.add_argument('--data_dir', type=str, default='/root/imagenet-data',
         #                     help='Directory with training data.')
@@ -30,7 +30,7 @@ class opts(object):
         # Network
         self.parser.add_argument('--network', type=str, default='ggcnn', help='Network Name in .models')
         self.parser.add_argument('--which-gpu', type=int, default=1, help='Choose which gpu for training/validation')
-        self.parser.add_argument('--warm-up', type=int, default=10, help='Warming up the learning rate')
+        self.parser.add_argument('--warm-up', type=int, default=29, help='Warming up the learning rate')
 
         # Dataset & Data & Training
         self.parser.add_argument('--dataset', type=str, help='Dataset Name ("cornell" or "jaquard")')
@@ -42,8 +42,8 @@ class opts(object):
                             help='Shift the start point of the dataset to use a different test/train split for cross validation')
         self.parser.add_argument('--num-workers', type=int, default=8, help='Dataset workers')
 
-        self.parser.add_argument('--batch-size', type=int, default=16, help='Batch size')
-        self.parser.add_argument('--epochs', type=int, default=60, help='Training epochs')
+        self.parser.add_argument('--batch-size', type=int, default=8, help='Batch size')
+        self.parser.add_argument('--epochs', type=int, default=50, help='Training epochs')
         self.parser.add_argument('--batches-per-epoch', type=int, default=1000, help='Batches per Epoch')
         self.parser.add_argument('--val-batches', type=int, default=250, help='Validation Batches')
 

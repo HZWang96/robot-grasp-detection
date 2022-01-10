@@ -17,7 +17,7 @@ class GraspNet(nn.Module):
         device = torch.device("cuda:"+str(opt.which_gpu) if torch.cuda.is_available() else "cpu")
         print(device)
 
-        self.model = models.resnet34(pretrained=False).to(device)
+        self.model = models.resnet18(pretrained=False).to(device)
 
         for param in self.model.parameters():
             param.requires_grad = True
@@ -26,7 +26,7 @@ class GraspNet(nn.Module):
         nn.Linear(512, 256),
         nn.ReLU(inplace=True),
         nn.Dropout(p=0.2),
-        nn.Linear(256, 5), 
+        nn.Linear(256, 6), 
         nn.ReLU(inplace=True))
 
         # nn.Linear(512, 512), 
@@ -39,7 +39,7 @@ class GraspNet(nn.Module):
         device = torch.device("cuda:"+str(opt.which_gpu) if torch.cuda.is_available() else "cpu")
         input = input.to(device)
         output = self.model(input)
-        # print("Printing output from ResNet50:")
+        # print("Printing output from ResNet-50:")
         # print(output)
         # return output[0][0], output[0][1], output[0][2], output[0][3], output[0][4]
         return output
@@ -72,9 +72,26 @@ class GraspNet(nn.Module):
         output1 = self(xc) # output from ResNet50
         for i in range(np.shape(output1)[0]):
             # x_pred, y_pred, theta_pred, length_pred, width_pred = self(xc[i].unsqueeze(0))   #不能放在第二个for循环里面
-            x_pred, y_pred, theta_pred, length_pred, width_pred = output1[i]
+            # x_pred, y_pred, theta_pred, length_pred, width_pred = output1[i]
+
+            #Post_Processing the Output Value from the Model!!!!!
+            x_pred_1, y_pred_1, sin2theta_pred, cos2theta_pred, length_pred_1, width_pred_1 = output1[i]
+
+            x_pred = x_pred_1  / 224
+            y_pred = y_pred_1  / 224
+            length_pred = length_pred_1  / 100
+            width_pred = width_pred_1  / 80
+
+            sintheta_pred = torch.sin(2*sin2theta_pred)
+            costheta_pred = torch.cos(2*cos2theta_pred)
+            # tan2theta_pred = torch.div(sin2theta_pred, cos2theta_pred)
+            # theta_pred = 0.5*torch.atan(tan2theta_pred)
+            theta_pred = 0.5*torch.atan2(sintheta_pred, costheta_pred) #careful torch.atan and torch.atan2!!!
+            # print('theta_pred is:', theta_pred)
+
             Loss_Sum = []
             # pred.append((x_pred, y_pred, theta_pred, length_pred, width_pred))
+
             for z in range(np.shape(yc[i])[0]):
                 x, y, theta, length, width = yc[i][z]      #第一个i是指第一个tensor, 第二个z是指tensor中的第z行
 
@@ -102,8 +119,8 @@ class GraspNet(nn.Module):
                 # width_loss = Smooth_L1loss(width_pred, width)
 
                 gamma = torch.tensor(1.0)                   #对每个参数进行权重的调整
-                alpha = torch.tensor(0.1)
-                beta = torch.tensor(0.1)
+                alpha = torch.tensor(1.0)
+                beta = torch.tensor(1.0)
 
                 loss_sum = alpha*x_loss + alpha*y_loss + gamma*theta_loss + beta*length_loss + beta*width_loss
                 Loss_Sum.append(loss_sum)
