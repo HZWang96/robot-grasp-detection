@@ -112,14 +112,45 @@ class GraspDatasetBase(torch.utils.data.Dataset):
 
         # return x, (pos, cos, sin, width), idx, rot, zoom_factor
         # return x, np.array(grasp_labels), idx, rot, zoom_factor, np.array(GRASP_labels)
-        return x, np.array(grasp_labels)
+        # print('idx:', idx)
+        # print('rot:', rot)
+        # print('zoom factor:', zoom_factor)
+        return x, np.array(grasp_labels), idx, rot, zoom_factor
 
     def __len__(self):
         return len(self.grasp_files)
 
+    def collate_fn_train(self, batch):
+            """
+            collate_fn for training process!
+            Since each image may have a different number of objects, we need a collate function (to be passed to the DataLoader).
+            This describes how to combine these tensors of different sizes. We use lists.
+            Note: this need not be defined in this Class, can be standalone.
+            :param batch: an iterable of N sets from __getitem__()
+            :return: a tensor of images, lists of varying-size tensors of bounding boxes, labels, and difficulties
+            """
+            rgb_img = list()
+            grasp_labels = list()
 
-    def collate_fn(self, batch):
+            # labels = list()
+            # difficulties = list()
+            
+            for b in batch:
+                rgb_img.append(b[0])
+                grasp_labels.append(b[1])
+
+            #     # images.append(b[0])
+            #     # boxes.append(b[1])
+            #     # labels.append(b[2])
+            #     # difficulties.append(b[3])
+
+            rgb_img = torch.stack(rgb_img, dim=0)
+
+            return rgb_img, grasp_labels               # tensor (N, 3, 300, 300), 3 lists of N tensors each
+
+    def collate_fn_eval(self, batch):
         """
+        collate_fn for eval process!
         Since each image may have a different number of objects, we need a collate function (to be passed to the DataLoader).
         This describes how to combine these tensors of different sizes. We use lists.
         Note: this need not be defined in this Class, can be standalone.
@@ -128,6 +159,9 @@ class GraspDatasetBase(torch.utils.data.Dataset):
         """
         rgb_img = list()
         grasp_labels = list()
+        idx = list()
+        rot = list()
+        zoom_factor = list()
 
         # labels = list()
         # difficulties = list()
@@ -135,6 +169,9 @@ class GraspDatasetBase(torch.utils.data.Dataset):
         for b in batch:
             rgb_img.append(b[0])
             grasp_labels.append(b[1])
+            idx.append(b[2])
+            rot.append(b[3])
+            zoom_factor.append(b[4])
 
         #     # images.append(b[0])
         #     # boxes.append(b[1])
@@ -143,4 +180,4 @@ class GraspDatasetBase(torch.utils.data.Dataset):
 
         rgb_img = torch.stack(rgb_img, dim=0)
 
-        return rgb_img, grasp_labels                # tensor (N, 3, 300, 300), 3 lists of N tensors each
+        return rgb_img, grasp_labels, idx, rot, zoom_factor               # tensor (N, 3, 300, 300), 3 lists of N tensors each

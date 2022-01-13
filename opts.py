@@ -6,7 +6,7 @@ class opts(object):
     def __init__(self):
         self.parser = argparse.ArgumentParser()
 
-        self.parser.add_argument('--lr', type=float, default=1e-3, help='Initial learning rate.')
+        self.parser.add_argument('--lr', type=float, default=1e-2, help='Initial learning rate.')
 
         # parser.add_argument('--data_dir', type=str, default='/root/imagenet-data',
         #                     help='Directory with training data.')
@@ -28,7 +28,7 @@ class opts(object):
 
         # Copy from GG-CNN Code
         # Network
-        self.parser.add_argument('--network', type=str, default='ggcnn', help='Network Name in .models')
+        self.parser.add_argument('--network', type=str, default='ResNet50', help='Network Name in .models')
         self.parser.add_argument('--which-gpu', type=int, default=1, help='Choose which gpu for training/validation')
         self.parser.add_argument('--warm-up', type=int, default=29, help='Warming up the learning rate')
 

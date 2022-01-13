@@ -1,6 +1,6 @@
 import argparse
 import logging
-
+import numpy as np
 import torch.utils.data
 
 from models.common import post_process_output
@@ -44,11 +44,11 @@ logging.basicConfig(level=logging.INFO)
 
 
 if __name__ == '__main__':
-    opt = opts()
+    opt = opts().init()
 
     # Load Network
     net = torch.load(opt.trained_network)
-    device = torch.device("cuda:0")
+    device = torch.device("cuda:"+str(opt.which_gpu) if torch.cuda.is_available() else "cpu")
 
     # Load Dataset
     logging.info('Loading {} Dataset...'.format(opt.dataset.title()))
@@ -60,6 +60,7 @@ if __name__ == '__main__':
         test_dataset,
         batch_size=1,
         shuffle=False,
+        collate_fn=test_dataset.collate_fn_eval,  
         num_workers=opt.num_workers
     )
     logging.info('Done')
@@ -72,20 +73,43 @@ if __name__ == '__main__':
             pass
 
     with torch.no_grad():
-        for idx, (x, y, didx, rot, zoom) in enumerate(test_data):
-            logging.info('Processing {}/{}'.format(idx+1, len(test_data)))
-            xc = x.to(device)
-            yc = [yi.to(device) for yi in y]
-            lossd = net.compute_loss(xc, yc)
+        # for idx, (x, y, didx, rot, zoom) in enumerate(test_data):
+        #     logging.info('Processing {}/{}'.format(idx+1, len(test_data)))
+        #     xc = x.to(device)
+        #     yc = [yi.to(device) for yi in y]
+        #     lossd = net.compute_loss(xc, yc)
 
-            q_img, ang_img, width_img = post_process_output(lossd['pred']['pos'], lossd['pred']['cos'],
-                                                        lossd['pred']['sin'], lossd['pred']['width'])
+        #     q_img, ang_img, width_img = post_process_output(lossd['pred']['pos'], lossd['pred']['cos'],
+        #                                                 lossd['pred']['sin'], lossd['pred']['width'])
+
+        for idx, (rgb_img, grasp_labels, didx, rot, zoom) in enumerate(test_data):
+            logging.info('Processing {}/{}'.format(idx+1, len(test_data)))
+            test_img = rgb_img.to(device)
+            gt = [torch.from_numpy(grasp_label).float().to(device) for grasp_label in grasp_labels]
+            lossd = net.compute_loss(test_img, gt)
+
+            Test_pred = lossd['pred']
+            test_preds = list(Test_pred.values())
+            
+            test_pred_value = [test_pred.float().cpu() for test_pred in test_preds]
+            test_pred_value[0] = test_pred_value[0] * 224
+            test_pred_value[1] = test_pred_value[1] * 224
+            test_pred_value[3] = test_pred_value[3] * 100
+            test_pred_value[4] = test_pred_value[4] * 80
+
+            for i in range(np.shape(gt[0])[0]):
+                gt[0][i][0] = gt[0][i][0] * 224
+                gt[0][i][1] = gt[0][i][1] * 224
+                gt[0][i][3] = gt[0][i][3] * 100
+                gt[0][i][4] = gt[0][i][4] * 80
 
             if opt.iou_eval:
-                s = evaluation.calculate_iou_match(q_img, ang_img, test_data.dataset.get_gtbb(didx, rot, zoom),
-                                                   no_grasps=opt.n_grasps,
-                                                   grasp_width=width_img,
-                                                   )
+                # s = evaluation.calculate_iou_match(q_img, ang_img, test_data.dataset.get_gtbb(didx, rot, zoom),
+                #                                    no_grasps=opt.n_grasps,
+                #                                    grasp_width=width_img,
+                #                                    )
+                s = evaluation.calculate_iou_match(test_pred_value, gt, no_grasps=opt.n_grasps)
+
                 if s:
                     results['correct'] += 1
                 else:
@@ -99,9 +123,9 @@ if __name__ == '__main__':
                         f.write(g.to_jacquard(scale=1024 / 300) + '\n')
 
             if opt.eval_vis:
-                evaluation.plot_output(test_data.dataset.get_rgb(didx, rot, zoom, normalise=False),
-                                       test_data.dataset.get_depth(didx, rot, zoom), q_img,
-                                       ang_img, no_grasps=opt.n_grasps, grasp_width_img=width_img)
+                # print('Image Number:', didx[0])
+                evaluation.plot_output(test_data.dataset.get_rgb(didx[0], rot[0], zoom[0], normalise=False),
+                                       test_data.dataset.get_depth(didx[0], rot[0], zoom[0]), test_pred_value, no_grasps=opt.n_grasps)
 
     if opt.iou_eval:
         logging.info('IOU Results: %d/%d = %f' % (results['correct'],

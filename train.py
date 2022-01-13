@@ -20,6 +20,7 @@ from torchsummary import summary
 from models.common import post_process_output
 from dataset_processing import evaluation #, grasp
 from models.ResNet50 import get_graspnet
+from visualisation.gridshow import gridshow
 # from dataset_processing.grasp import GraspRectangles, detect_grasps, GraspRectangle, _gr_text_to_no
 
 
@@ -205,7 +206,7 @@ def train(epoch, net, device, train_data, optimizer, batches_per_epoch, vis=Fals
     batch_idx = 0
     # Use batches per epoch to make training on different sized datasets (cornell/jacquard) more equivalent.
     # while batch_idx < batches_per_epoch:
-    for rgb_img, grasp_labels in train_data:
+    for rgb_img, y in train_data:                   #rgb_img: Input RGB images, y: Input ground truth grasp labels.
         batch_idx += 1
         # print(rgb_img.shape)
         train_img = rgb_img.to(device)              #每次取batch_size张的图片和对应数量的bbx
@@ -214,7 +215,7 @@ def train(epoch, net, device, train_data, optimizer, batches_per_epoch, vis=Fals
         # for grasp_label in grasp_labels:
         #     print('max value is:', np.max(grasp_label, axis=0))
 
-        gt = [torch.from_numpy(grasp_label).float().to(device) for grasp_label in grasp_labels]
+        gt = [torch.from_numpy(yy).float().to(device) for yy in y]
         # print('gt is:', gt)
 
         # for i in range(opt.batch_size):
@@ -236,6 +237,18 @@ def train(epoch, net, device, train_data, optimizer, batches_per_epoch, vis=Fals
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
+
+        # Display the images
+        if vis:
+            imgs = []
+            n_img = min(4, rgb_img.shape[0])
+            for idx in range(n_img):
+                imgs.extend([rgb_img[idx,].numpy().squeeze()] + [yi[idx,].numpy().squeeze() for yi in y] + [
+                    rgb_img[idx,].numpy().squeeze()] + [pc[idx,].detach().cpu().numpy().squeeze() for pc in lossd['pred'].values()])
+            gridshow('Display', imgs,
+                     [(train_img.min().item(), train_img.max().item()), (0.0, 1.0), (0.0, 1.0), (-1.0, 1.0), (0.0, 1.0)] * 2 * n_img,
+                     [cv2.COLORMAP_BONE] * 10 * n_img, 10)
+            cv2.waitKey(2)
 
     results['loss'] /= batch_idx
     for l in results['losses']:
@@ -338,17 +351,17 @@ def run():
         train_dataset,
         batch_size=opt.batch_size,
         shuffle=True,
-        collate_fn=train_dataset.collate_fn,
+        collate_fn=train_dataset.collate_fn_train,
         num_workers=opt.num_workers
     )
     val_dataset = Dataset(opt.dataset_path, start=opt.split, end=1.0, ds_rotate=opt.ds_rotate,
-                          random_rotate=True, random_zoom=True,
+                          random_rotate=False, random_zoom=False,
                           include_depth=opt.use_depth, include_rgb=opt.use_rgb)
     val_data = torch.utils.data.DataLoader(
         val_dataset,
         batch_size=1,
         shuffle=False,
-        collate_fn=val_dataset.collate_fn,
+        collate_fn=val_dataset.collate_fn_train,
         num_workers=opt.num_workers
     )
     logging.info('Done')
@@ -361,7 +374,7 @@ def run():
     device = torch.device("cuda:"+str(opt.which_gpu) if torch.cuda.is_available() else "cpu")
     net = net.to(device)
     # optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, net.parameters()), lr=opt.lr)
-    optimizer = torch.optim.SGD(filter(lambda p: p.requires_grad, net.parameters()), lr=opt.lr, weight_decay=1e-3, momentum=0.9)
+    optimizer = torch.optim.SGD(filter(lambda p: p.requires_grad, net.parameters()), lr=opt.lr, weight_decay=1e-4, momentum=0.9)
     logging.info('Done')
 
     # Print model architecture.
@@ -376,17 +389,17 @@ def run():
     for epoch in range(opt.epochs):
         logging.info('Beginning Epoch {:02d}'.format(epoch))
 
-        # Warming up the learning rate
-        if epoch > opt.warm_up:
-            lr1 = opt.lr * 0.1
-            print('Drop LR to:', lr1)
-            for param_group in optimizer.param_groups:
-                param_group['lr'] = lr1
-            print('LR now in optimizer is:', param_group['lr'])
-        else:
-            for param_group in optimizer.param_groups:
-                param_group['lr'] = opt.lr
-            print('LR now in optimizer is:', param_group['lr'])
+        # # Warming up the learning rate
+        # if epoch > opt.warm_up:
+        #     lr1 = opt.lr * 0.1
+        #     print('Drop LR to:', lr1)
+        #     for param_group in optimizer.param_groups:
+        #         param_group['lr'] = lr1
+        #     print('LR now in optimizer is:', param_group['lr'])
+        # else:
+        #     for param_group in optimizer.param_groups:
+        #         param_group['lr'] = opt.lr
+        #     print('LR now in optimizer is:', param_group['lr'])
             
         train_results = train(epoch, net, device, train_data, optimizer, opt.batches_per_epoch, vis=opt.vis)
 

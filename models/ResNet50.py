@@ -26,7 +26,7 @@ class GraspNet(nn.Module):
         nn.Linear(512, 256),
         nn.ReLU(inplace=True),
         nn.Dropout(p=0.2),
-        nn.Linear(256, 6), 
+        nn.Linear(256, 5), 
         nn.ReLU(inplace=True))
 
         # nn.Linear(512, 512), 
@@ -70,23 +70,29 @@ class GraspNet(nn.Module):
         # print("Printing output from ResNet50:")
         # print(self(xc))
         output1 = self(xc) # output from ResNet50
+        print('output from ResNet50:', output1)
+
         for i in range(np.shape(output1)[0]):
             # x_pred, y_pred, theta_pred, length_pred, width_pred = self(xc[i].unsqueeze(0))   #不能放在第二个for循环里面
             # x_pred, y_pred, theta_pred, length_pred, width_pred = output1[i]
 
             #Post_Processing the Output Value from the Model!!!!!
-            x_pred_1, y_pred_1, sin2theta_pred, cos2theta_pred, length_pred_1, width_pred_1 = output1[i]
+            # x_pred_1, y_pred_1, sintheta_pred, costheta_pred, length_pred_1, width_pred_1 = output1[i]
+            x_pred_1, y_pred_1, theta_pred_1, length_pred_1, width_pred_1 = output1[i]
+            # print('Theta from model is:', theta_pred_1)
 
             x_pred = x_pred_1  / 224
             y_pred = y_pred_1  / 224
             length_pred = length_pred_1  / 100
             width_pred = width_pred_1  / 80
 
-            sintheta_pred = torch.sin(2*sin2theta_pred)
-            costheta_pred = torch.cos(2*cos2theta_pred)
+            sin2theta_pred = torch.sin(2*theta_pred_1)
+            cos2theta_pred = torch.cos(2*theta_pred_1)
+
             # tan2theta_pred = torch.div(sin2theta_pred, cos2theta_pred)
             # theta_pred = 0.5*torch.atan(tan2theta_pred)
-            theta_pred = 0.5*torch.atan2(sintheta_pred, costheta_pred) #careful torch.atan and torch.atan2!!!
+            theta_pred = 0.5*torch.atan2(sin2theta_pred, cos2theta_pred) #careful torch.atan and torch.atan2!!!
+            # theta_pred = 0.5*torch.atan(theta_pred_1)
             # print('theta_pred is:', theta_pred)
 
             Loss_Sum = []
@@ -94,6 +100,7 @@ class GraspNet(nn.Module):
 
             for z in range(np.shape(yc[i])[0]):
                 x, y, theta, length, width = yc[i][z]      #第一个i是指第一个tensor, 第二个z是指tensor中的第z行
+                # print('Theta from GT is:', theta)
 
                 # MSE Loss
                 x_loss = F.mse_loss(x_pred, x)
