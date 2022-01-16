@@ -389,17 +389,17 @@ def run():
     for epoch in range(opt.epochs):
         logging.info('Beginning Epoch {:02d}'.format(epoch))
 
-        # # Warming up the learning rate
-        # if epoch > opt.warm_up:
-        #     lr1 = opt.lr * 0.1
-        #     print('Drop LR to:', lr1)
-        #     for param_group in optimizer.param_groups:
-        #         param_group['lr'] = lr1
-        #     print('LR now in optimizer is:', param_group['lr'])
-        # else:
-        #     for param_group in optimizer.param_groups:
-        #         param_group['lr'] = opt.lr
-        #     print('LR now in optimizer is:', param_group['lr'])
+        # Warming up the learning rate
+        if epoch > opt.warm_up:
+            lr1 = opt.lr * 0.1
+            print('Drop LR to:', lr1)
+            for param_group in optimizer.param_groups:
+                param_group['lr'] = lr1
+            print('LR now in optimizer is:', param_group['lr'])
+        else:
+            for param_group in optimizer.param_groups:
+                param_group['lr'] = opt.lr
+            print('LR now in optimizer is:', param_group['lr'])
             
         train_results = train(epoch, net, device, train_data, optimizer, opt.batches_per_epoch, vis=opt.vis)
 

@@ -6,7 +6,7 @@ class opts(object):
     def __init__(self):
         self.parser = argparse.ArgumentParser()
 
-        self.parser.add_argument('--lr', type=float, default=1e-2, help='Initial learning rate.')
+        self.parser.add_argument('--lr', type=float, default=1e-3, help='Initial learning rate.')
 
         # parser.add_argument('--data_dir', type=str, default='/root/imagenet-data',
         #                     help='Directory with training data.')

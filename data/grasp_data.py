@@ -77,6 +77,8 @@ class GraspDatasetBase(torch.utils.data.Dataset):
         bbs = bbs.to_array()
         for i in range(bbs.shape[0]):
             grasp_labels.append([(GraspRectangle(bbs[i]).center[1]) / 224, (GraspRectangle(bbs[i]).center[0]) / 224, GraspRectangle(bbs[i]).angle, (GraspRectangle(bbs[i]).length) / 100, (GraspRectangle(bbs[i]).width) / 80])
+            # grasp_labels.append([GraspRectangle(bbs[i]).center[1], GraspRectangle(bbs[i]).center[0], GraspRectangle(bbs[i]).angle, GraspRectangle(bbs[i]).length, GraspRectangle(bbs[i]).width])
+
 
 
         # pos_img, ang_img, width_img = bbs.draw((self.output_size, self.output_size))
