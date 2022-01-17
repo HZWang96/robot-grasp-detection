@@ -18,11 +18,10 @@ from data import get_dataset
 import torch.optim as optim
 from torchsummary import summary
 from models.common import post_process_output
-from dataset_processing import evaluation #, grasp
-from models.ResNet50 import get_graspnet
+from dataset_processing import evaluation
+from models.ResNet50 import get_grasp_resnet
+from models.AlexNet import get_grasp_alexnet
 from visualisation.gridshow import gridshow
-# from dataset_processing.grasp import GraspRectangles, detect_grasps, GraspRectangle, _gr_text_to_no
-
 
 logging.basicConfig(level=logging.INFO)
 
@@ -370,11 +369,12 @@ def run():
     logging.info('Loading Network...')
     input_channels = 3*opt.use_rgb             #  1*args.use_depth + 3*args.use_rgb
     # ggcnn = get_network(args.network)
-    net = get_graspnet()                       #   ggcnn(input_channels=input_channels)
+    net = get_grasp_resnet()                       # choose ResNet model!
+    # net = get_grasp_alexnet()                        # choose AlexNet model (Redmon version)!
     device = torch.device("cuda:"+str(opt.which_gpu) if torch.cuda.is_available() else "cpu")
     net = net.to(device)
     # optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, net.parameters()), lr=opt.lr)
-    optimizer = torch.optim.SGD(filter(lambda p: p.requires_grad, net.parameters()), lr=opt.lr, weight_decay=1e-4, momentum=0.9)
+    optimizer = torch.optim.SGD(filter(lambda p: p.requires_grad, net.parameters()), lr=opt.lr, weight_decay=1e-6, momentum=0.9)
     logging.info('Done')
 
     # Print model architecture.
