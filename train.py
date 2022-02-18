@@ -56,6 +56,9 @@ def validate(epoch, net, device, val_data):
         # while batch_idx < batches_per_epoch:
         for rgb_img, grasp_labels in val_data:
             batch_idx += 1
+            # if batches_per_epoch is not None and batch_idx >= batches_per_epoch:
+            #     break
+
             val_img = rgb_img.to(device)
             gt = [torch.from_numpy(grasp_label).float().to(device) for grasp_label in grasp_labels]
             # print('gt:')
@@ -204,50 +207,54 @@ def train(epoch, net, device, train_data, optimizer, batches_per_epoch, vis=Fals
 
     batch_idx = 0
     # Use batches per epoch to make training on different sized datasets (cornell/jacquard) more equivalent.
-    # while batch_idx < batches_per_epoch:
-    for rgb_img, y in train_data:                   #rgb_img: Input RGB images, y: Input ground truth grasp labels.
-        batch_idx += 1
-        # print(rgb_img.shape)
-        train_img = rgb_img.to(device)              #每次取batch_size张的图片和对应数量的bbx
-        # print(train_img)
+    while batch_idx < batches_per_epoch:
+        for rgb_img, y in train_data:                   #rgb_img: Input RGB images, y: Input ground truth grasp labels.
+            batch_idx += 1
+            if batch_idx >= batches_per_epoch:
+                break
 
-        # for grasp_label in grasp_labels:
-        #     print('max value is:', np.max(grasp_label, axis=0))
+            # print(rgb_img.shape)
+            train_img = rgb_img.to(device)              #每次取batch_size张的图片和对应数量的bbx
+            # print(train_img)
 
-        gt = [torch.from_numpy(yy).float().to(device) for yy in y]
-        # print('gt is:', gt)
+            # for grasp_label in grasp_labels:
+            #     print('max value is:', np.max(grasp_label, axis=0))
 
-        # for i in range(opt.batch_size):
-        lossd = net.compute_loss(train_img, gt)
+            gt = [torch.from_numpy(yy).float().to(device) for yy in y]
+            # print('gt is:', gt)
 
-        loss = lossd['loss']
+            # for i in range(opt.batch_size):
+            lossd = net.compute_loss(train_img, gt)
 
-        logging.info('Epoch: {}, Batch: {}, Loss: {:0.4f}'.format(epoch, batch_idx, loss.item()))
+            loss = lossd['loss']
 
-        results['loss'] += loss.item()
-        for ln, l in lossd['losses'].items():       # ln是dic里面每一个项目的名字，l是每个项目对应的值
-            # print(ln)
-            # print(l)
-            if ln not in results['losses']:         
-                results['losses'][ln] = 0
-            results['losses'][ln] += l.item()
-            # results['losses'][ln] += l
+            # if batch_idx % 100 == 0:
+            logging.info('Epoch: {}, Batch: {}, Loss: {:0.4f}'.format(epoch, batch_idx, loss.item()))
 
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
+            results['loss'] += loss.item()
+            for ln, l in lossd['losses'].items():       # ln是dic里面每一个项目的名字，l是每个项目对应的值
+                # print(ln)
+                # print(l)
+                if ln not in results['losses']:         
+                    results['losses'][ln] = 0
+                results['losses'][ln] += l.item()
+                # results['losses'][ln] += l
 
-        # Display the images
-        if vis:
-            imgs = []
-            n_img = min(4, rgb_img.shape[0])
-            for idx in range(n_img):
-                imgs.extend([rgb_img[idx,].numpy().squeeze()] + [yi[idx,].numpy().squeeze() for yi in y] + [
-                    rgb_img[idx,].numpy().squeeze()] + [pc[idx,].detach().cpu().numpy().squeeze() for pc in lossd['pred'].values()])
-            gridshow('Display', imgs,
-                     [(train_img.min().item(), train_img.max().item()), (0.0, 1.0), (0.0, 1.0), (-1.0, 1.0), (0.0, 1.0)] * 2 * n_img,
-                     [cv2.COLORMAP_BONE] * 10 * n_img, 10)
-            cv2.waitKey(2)
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+
+            # Display the images
+            if vis:
+                imgs = []
+                n_img = min(4, rgb_img.shape[0])
+                for idx in range(n_img):
+                    imgs.extend([rgb_img[idx,].numpy().squeeze()] + [yi[idx,].numpy().squeeze() for yi in y] + [
+                        rgb_img[idx,].numpy().squeeze()] + [pc[idx,].detach().cpu().numpy().squeeze() for pc in lossd['pred'].values()])
+                gridshow('Display', imgs,
+                        [(train_img.min().item(), train_img.max().item()), (0.0, 1.0), (0.0, 1.0), (-1.0, 1.0), (0.0, 1.0)] * 2 * n_img,
+                        [cv2.COLORMAP_BONE] * 10 * n_img, 10)
+                cv2.waitKey(2)
 
     results['loss'] /= batch_idx
     for l in results['losses']:
@@ -344,7 +351,7 @@ def run():
     Dataset = get_dataset(opt.dataset)
 
     train_dataset = Dataset(opt.dataset_path, start=0.0, end=opt.split, ds_rotate=opt.ds_rotate,
-                            random_rotate=True, random_zoom=True,
+                            random_rotate=False, random_zoom=False,
                             include_depth=opt.use_depth, include_rgb=opt.use_rgb)
     train_data = torch.utils.data.DataLoader(
         train_dataset,
@@ -367,14 +374,14 @@ def run():
 
     # Load the network
     logging.info('Loading Network...')
-    input_channels = 3*opt.use_rgb             #  1*args.use_depth + 3*args.use_rgb
+    input_channels = 1*opt.use_depth + 3*opt.use_rgb             #  1*args.use_depth + 3*args.use_rgb
     # ggcnn = get_network(args.network)
     net = get_grasp_resnet()                       # choose ResNet model!
     # net = get_grasp_alexnet()                        # choose AlexNet model (Redmon version)!
     device = torch.device("cuda:"+str(opt.which_gpu) if torch.cuda.is_available() else "cpu")
     net = net.to(device)
     # optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, net.parameters()), lr=opt.lr)
-    optimizer = torch.optim.SGD(filter(lambda p: p.requires_grad, net.parameters()), lr=opt.lr, weight_decay=1e-6, momentum=0.9)
+    optimizer = torch.optim.SGD(filter(lambda p: p.requires_grad, net.parameters()), lr=opt.lr, weight_decay=1e-4, momentum=0.9)
     logging.info('Done')
 
     # Print model architecture.
